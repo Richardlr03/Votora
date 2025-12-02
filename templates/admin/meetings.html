@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="py-4">
+    <h1 class="mb-3">Admin – Meetings</h1>
+
+    {% if meetings %}
+      <p class="text-muted">Total meetings: {{ meetings|length }}</p>
+
+      <table class="table table-striped align-middle">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in meetings %}
+            <tr>
+              <td>{{ m.id }}</td>
+              <td>{{ m.title }}</td>
+              <td>{{ m.description or "-" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="alert alert-info">
+        No meetings found yet. We’ll add a “Create Meeting” form soon.
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}
