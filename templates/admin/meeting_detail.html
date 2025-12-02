@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="py-4">
+    <a href="{{ url_for('admin_meetings') }}" class="btn btn-link">&larr; Back to all meetings</a>
+
+    <h1 class="mb-1">{{ meeting.title }}</h1>
+    <p class="text-muted mb-3">
+      Meeting ID: {{ meeting.id }}
+    </p>
+
+    {% if meeting.description %}
+      <p>{{ meeting.description }}</p>
+    {% else %}
+      <p class="text-muted"><em>No description provided.</em></p>
+    {% endif %}
+
+    <hr class="my-4">
+
+    <div class="row">
+      <div class="col-md-6 mb-4">
+        <h2 class="h4 mb-3">Motions</h2>
+
+        {% if meeting.motions %}
+          <p class="text-muted">Total motions: {{ meeting.motions|length }}</p>
+          <ul class="list-group">
+            {% for motion in meeting.motions %}
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <strong>{{ motion.title }}</strong><br>
+                  <small class="text-muted">
+                    Type: {{ motion.type }} | Status: {{ motion.status }}
+                  </small>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="alert alert-info">
+            No motions added yet. We’ll add a form to create motions here in the next step.
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="col-md-6 mb-4">
+        <h2 class="h4 mb-3">Voters</h2>
+
+        {% if meeting.voters %}
+          <p class="text-muted">Total voters: {{ meeting.voters|length }}</p>
+          <ul class="list-group">
+            {% for voter in meeting.voters %}
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  {{ voter.name }}<br>
+                  <small class="text-muted">Code: {{ voter.code }}</small>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="alert alert-info">
+            No voters added yet. We’ll add tools to manage voter list here soon.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endblock %}

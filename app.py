@@ -106,5 +106,10 @@ def create_meeting():
     # GET request → show form
     return render_template("admin/create_meeting.html")
 
+@app.route("/admin/meetings/<int:meeting_id>")
+def meeting_detail(meeting_id):
+    meeting = Meeting.query.get_or_404(meeting_id)
+    return render_template("admin/meeting_detail.html", meeting=meeting)
+
 if __name__ == "__main__":
     app.run(debug=True)
