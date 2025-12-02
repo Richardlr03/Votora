@@ -20,6 +20,9 @@
             <p class="text-muted mb-3">
               Type: {{ motion.type }} &middot; Status: {{ motion.status }}<br>
               Total votes: {{ item.total_votes }}
+              {% if motion.type == "PREFERENCE" and motion.num_winners %}
+                  <br>Number of winners: {{ motion.num_winners }}
+              {% endif %}
             </p>
 
             {% if item.total_votes == 0 %}

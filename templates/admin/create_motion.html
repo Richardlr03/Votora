@@ -19,6 +19,7 @@
         <select name="type" id="type" class="form-select" required>
           <option value="YES_NO">Yes / No / Abstain</option>
           <option value="CANDIDATE">Candidate election (choose 1)</option>
+          <option value="PREFERENCE">Preference voting (ranked, multiple winners)</option>
         </select>
       </div>
 
@@ -35,23 +36,49 @@
         ></textarea>
       </div>
 
+      <div class="mb-3" id="num-winners-group">
+        <label for="num_winners" class="form-label">
+            Number of winners <small class="text-muted">(for preference voting)</small>
+        </label>
+        <input
+            type="number"
+            name="num_winners"
+            id="num_winners"
+            class="form-control"
+            min="1"
+            placeholder="e.g. 1 or 2"
+        >
+      </div>
+
+
       <button type="submit" class="btn btn-success">Create Motion</button>
       <a href="{{ url_for('meeting_detail', meeting_id=meeting.id) }}" class="btn btn-secondary">Cancel</a>
     </form>
   </div>
 
   <script>
-    // Optional: simple UX so textarea is greyed when not needed
     const typeSelect = document.getElementById("type");
     const candidatesField = document.getElementById("candidates");
+    const numWinnersGroup = document.getElementById("num-winners-group");
+    const numWinnersInput = document.getElementById("num_winners");
 
-    function toggleCandidates() {
-      const isCandidate = typeSelect.value === "CANDIDATE";
-      candidatesField.disabled = !isCandidate;
-      candidatesField.classList.toggle("bg-light", !isCandidate);
+    function updateVisibility() {
+        const t = typeSelect.value;
+
+        const needsCandidates = (t === "CANDIDATE" || t === "PREFERENCE");
+        candidatesField.disabled = !needsCandidates;
+        candidatesField.classList.toggle("bg-light", !needsCandidates);
+
+        const needsNumWinners = (t === "PREFERENCE");
+        numWinnersGroup.style.display = needsNumWinners ? "block" : "none";
+
+        if (!needsNumWinners) {
+        numWinnersInput.value = "";
+        }
     }
 
-    typeSelect.addEventListener("change", toggleCandidates);
-    toggleCandidates();
-  </script>
+    typeSelect.addEventListener("change", updateVisibility);
+    updateVisibility();
+    </script>
+
 {% endblock %}

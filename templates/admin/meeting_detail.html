@@ -39,6 +39,9 @@
                   <strong>{{ motion.title }}</strong><br>
                   <small class="text-muted">
                     Type: {{ motion.type }} | Status: {{ motion.status }}
+                    {% if motion.type == "PREFERENCE" and motion.num_winners %}
+                        | Winners: {{ motion.num_winners }}
+                    {% endif %}
                   </small>
                 </div>
               </li>

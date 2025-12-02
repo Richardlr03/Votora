@@ -36,10 +36,13 @@ class Motion(db.Model):
     meeting_id = db.Column(db.Integer, db.ForeignKey("meetings.id"), nullable=False)
     title = db.Column(db.String(200), nullable=False)
 
-    # e.g. "YES_NO" or "CANDIDATE"
+    # "YES_NO", "CANDIDATE", "PREFERENCE", etc.
     type = db.Column(db.String(50), nullable=False, default="YES_NO")
 
-    # e.g. "DRAFT", "OPEN", "CLOSED"
+    # For systems with multiple winners (e.g. preference voting / STV)
+    num_winners = db.Column(db.Integer, nullable=True)  # e.g. 1, 2, 3
+
+    # "DRAFT", "OPEN", "CLOSED"
     status = db.Column(db.String(20), nullable=False, default="DRAFT")
 
     options = db.relationship("Option", backref="motion", lazy=True)
@@ -122,35 +125,45 @@ def create_motion(meeting_id):
     if request.method == "POST":
         title = request.form.get("title")
         motion_type = request.form.get("type")
-        candidate_text = request.form.get("candidates")  # may be empty
+        candidate_text = request.form.get("candidates")
+        num_winners_raw = request.form.get("num_winners")
 
-        # Create the motion
+        num_winners = None
+        if motion_type == "PREFERENCE":
+            try:
+                nw = int(num_winners_raw) if num_winners_raw else 1
+                if nw < 1:
+                    nw = 1
+                num_winners = nw
+            except ValueError:
+                num_winners = 1  # sensible default
+
         motion = Motion(
             meeting_id=meeting.id,
             title=title,
             type=motion_type,
-            status="DRAFT",  # we can change to OPEN/CLOSED later
+            status="DRAFT",
+            num_winners=num_winners,
         )
         db.session.add(motion)
-        db.session.flush()  # get motion.id before creating options
+        db.session.flush()  # get motion.id
 
-        # Create options based on motion type
+        # Create options
         if motion_type == "YES_NO":
             default_options = ["Yes", "No", "Abstain"]
-            for opt in default_options:
-                db.session.add(Option(motion_id=motion.id, text=opt))
-        elif motion_type == "CANDIDATE":
-            # Split candidate text by lines (ignore empty lines)
+            for opt_text in default_options:
+                db.session.add(Option(motion_id=motion.id, text=opt_text))
+
+        elif motion_type in ("CANDIDATE", "PREFERENCE"):
             if candidate_text:
                 lines = [line.strip() for line in candidate_text.splitlines() if line.strip()]
                 for name in lines:
                     db.session.add(Option(motion_id=motion.id, text=name))
 
         db.session.commit()
-
         return redirect(url_for("meeting_detail", meeting_id=meeting.id))
 
-    # GET → show form
+    # GET
     return render_template("admin/create_motion.html", meeting=meeting)
 
 @app.route("/admin/meetings/<int:meeting_id>/voters/new", methods=["GET", "POST"])
