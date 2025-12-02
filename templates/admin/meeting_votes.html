@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="py-4">
+    <a href="{{ url_for('meeting_detail', meeting_id=meeting.id) }}" class="btn btn-link">
+      &larr; Back to meeting
+    </a>
+
+    <h1 class="mb-1">Detailed Votes – {{ meeting.title }}</h1>
+    <p class="text-muted mb-4">
+      Meeting ID: {{ meeting.id }}
+    </p>
+
+    {% if motions_detail %}
+      {% for item in motions_detail %}
+        {% set motion = item.motion %}
+        <div class="card mb-4">
+          <div class="card-body">
+            <h2 class="h5 card-title mb-1">{{ motion.title }}</h2>
+            <p class="text-muted mb-3">
+              Type: {{ motion.type }} &middot; Status: {{ motion.status }}<br>
+              Voters who cast at least one vote for this motion:
+              {{ item.num_voters_voted }} / {{ item.num_possible_voters }}
+            </p>
+
+            {% if item.rows %}
+              <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th>Voter</th>
+                      <th style="width: 25%;">Code</th>
+                      <th>Selection / Preferences</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for row in item.rows %}
+                      <tr>
+                        <td>{{ row.voter.name }}</td>
+                        <td><code>{{ row.voter.code }}</code></td>
+                        <td>{{ row.choice_display }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <div class="alert alert-info mb-0">
+                No votes have been recorded for this motion yet.
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="alert alert-info">
+        There are no motions configured for this meeting yet.
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}

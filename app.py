@@ -234,6 +234,67 @@ def meeting_results(meeting_id):
         results=results,
     )
 
+@app.route("/admin/meetings/<int:meeting_id>/votes")
+def meeting_votes(meeting_id):
+    meeting = Meeting.query.get_or_404(meeting_id)
+
+    motions_detail = []
+
+    for motion in meeting.motions:
+        # Group votes by voter for this motion
+        voter_map = {}  # voter_id -> {"voter": Voter, "votes": [Vote]}
+
+        for vote in motion.votes:
+            if vote.voter_id not in voter_map:
+                voter_map[vote.voter_id] = {"voter": vote.voter, "votes": []}
+            voter_map[vote.voter_id]["votes"].append(vote)
+
+        rows = []
+
+        for voter_id, data in voter_map.items():
+            voter = data["voter"]
+            vote_list = data["votes"]
+
+            if motion.type == "PREFERENCE":
+                # Sort by preference rank (1, 2, 3, ...). Unranked last just in case.
+                sorted_votes = sorted(
+                    vote_list,
+                    key=lambda v: v.preference_rank if v.preference_rank is not None else 9999
+                )
+
+                parts = []
+                for v in sorted_votes:
+                    if v.preference_rank is not None:
+                        parts.append(f"{v.preference_rank}: {v.option.text}")
+                    else:
+                        parts.append(v.option.text)
+                choice_display = ", ".join(parts)
+            else:
+                # Simple motions: YES_NO, CANDIDATE, etc.
+                choices = [v.option.text for v in vote_list]
+                choice_display = ", ".join(choices)
+
+            rows.append({
+                "voter": voter,
+                "choice_display": choice_display,
+            })
+
+        # Sort rows alphabetically by voter name
+        rows.sort(key=lambda r: r["voter"].name.lower())
+
+        motions_detail.append({
+            "motion": motion,
+            "rows": rows,
+            "num_voters_voted": len(voter_map),
+            "num_possible_voters": len(meeting.voters),
+        })
+
+    return render_template(
+        "admin/meeting_votes.html",
+        meeting=meeting,
+        motions_detail=motions_detail,
+    )
+
 
 @app.route("/vote/<code>", methods=["GET", "POST"])
 def voter_page(code):
