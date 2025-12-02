@@ -2,7 +2,12 @@
 
 {% block content %}
   <div class="py-4">
-    <h1 class="mb-3">Admin – Meetings</h1>
+    <h1 class="mb-3">Admin - Meetings</h1>
+
+    <a href="{{ url_for('create_meeting') }}" class="btn btn-primary mb-3">
+        + Create New Meeting
+    </a>
+
 
     {% if meetings %}
       <p class="text-muted">Total meetings: {{ meetings|length }}</p>
@@ -27,7 +32,7 @@
       </table>
     {% else %}
       <div class="alert alert-info">
-        No meetings found yet. We’ll add a “Create Meeting” form soon.
+        No meetings found yet. We'll add a “Create Meeting” form soon.
       </div>
     {% endif %}
   </div>

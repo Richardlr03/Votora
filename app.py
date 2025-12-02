@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 import os
 
@@ -89,6 +89,22 @@ def admin_meetings():
     # For now, just list all meetings in plain form
     meetings = Meeting.query.all()
     return render_template("admin/meetings.html", meetings=meetings)
+
+@app.route("/admin/meetings/new", methods=["GET", "POST"])
+def create_meeting():
+    if request.method == "POST":
+        title = request.form.get("title")
+        description = request.form.get("description")
+
+        # Create and save meeting
+        new_meeting = Meeting(title=title, description=description)
+        db.session.add(new_meeting)
+        db.session.commit()
+
+        return redirect(url_for('admin_meetings'))
+
+    # GET request → show form
+    return render_template("admin/create_meeting.html")
 
 if __name__ == "__main__":
     app.run(debug=True)
