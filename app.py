@@ -134,7 +134,6 @@ def irv_single_winner(ballots, active_candidates, options_by_id):
         # If only one candidate left, they win automatically
         if len(active) == 1:
             (only,) = active
-            # no new round here, just finalize
             round_logs.append([f"{name(only)} is the only remaining candidate and is elected."])
             return only, rounds, round_logs
 
@@ -147,13 +146,14 @@ def irv_single_winner(ballots, active_candidates, options_by_id):
                     break
 
         rounds.append(counts.copy())
-
         round_number = len(rounds)
         total_valid = sum(counts.values())
-        # Base log for this round
+
         base_log = [
-            f"Round {round_number}: first-preference counts "
-            + ", ".join(f"{name(cid)} = {counts[cid]}" for cid in sorted(active)),
+            "Round {}: first-preference counts {}".format(
+                round_number,
+                ", ".join(f"{name(cid)} = {counts[cid]}" for cid in sorted(active)),
+            ),
             f"Total valid ballots counted this round: {total_valid}.",
         ]
 
@@ -171,7 +171,34 @@ def irv_single_winner(ballots, active_candidates, options_by_id):
             round_logs.append(base_log)
             return winner_id, rounds, round_logs
 
-        # Find the lowest candidates
+        # 🔹 NEW RULE: auto-eliminate any candidates with 0 first-preference votes
+        zero_candidates = [cid for cid, v in counts.items() if v == 0]
+        non_zero_candidates = [cid for cid, v in counts.items() if v > 0]
+
+        # If some candidates have 0 and some have >0, eliminate all zero-vote candidates
+        if zero_candidates and non_zero_candidates:
+            if len(zero_candidates) == 1:
+                z = zero_candidates[0]
+                base_log.append(
+                    f"{name(z)} has 0 first-preference votes and is eliminated automatically."
+                )
+            else:
+                zero_names = ", ".join(name(cid) for cid in sorted(zero_candidates))
+                base_log.append(
+                    "The following candidates have 0 first-preference votes and are "
+                    f"all eliminated automatically: {zero_names}."
+                )
+
+            # Remove all zero-vote candidates from active set
+            for z in zero_candidates:
+                active.remove(z)
+
+            # Finish this round and continue with reduced active set
+            round_logs.append(base_log)
+            continue
+
+        # No zero-vote candidates (or everyone is zero, which we already handled),
+        # so we fall back to normal lowest-vote elimination + tie-break.
         min_votes = min(counts.values())
         lowest = [cid for cid, v in counts.items() if v == min_votes]
 
@@ -208,7 +235,6 @@ def irv_single_winner(ballots, active_candidates, options_by_id):
     # If we somehow exit loop with no active candidates
     round_logs.append(["All candidates eliminated; no winner determined."])
     return None, rounds, round_logs
-
 
 def irv_tie_break_loser(ballots, tied_candidates, options_by_id):
     """
