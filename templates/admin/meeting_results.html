@@ -63,10 +63,22 @@
                     {% endfor %}
                   </tbody>
                 </table>
-              {% endfor %}
+                {% if seat.round_logs %}
+                  <div class="mt-2">
+                    <h4 class="h6">Round-by-round summary</h4>
+                      <ol class="mb-0">
+                        {% for round_log in seat.round_logs %}
+                          <li class="mb-1">
+                            {% for line in round_log %}
+                              <div>{{ line }}</div>
+                            {% endfor %}
+                          </li>
+                        {% endfor %}
+                      </ol>
+                    </div>
+                {% endif %}
 
-            {% else %}
-              {# existing simple results table here #}
+              {% endfor %}
             {% endif %}
           </div>
         </div>

@@ -113,15 +113,32 @@ def build_ballots_for_motion(motion):
 
     return ballots
 
-def irv_single_winner(ballots, active_candidates):
+def irv_single_winner(ballots, active_candidates, options_by_id):
+    """
+    Run IRV for a single winner among active_candidates.
+
+    Returns (winner_id, rounds, round_logs) where:
+      - winner_id: option_id or None
+      - rounds: list of {candidate_id: votes} dicts (one per round)
+      - round_logs: list of list-of-strings; each element corresponds to a round
+                    and contains human-readable explanation lines for that round.
+    """
     active = set(active_candidates)
     rounds = []
+    round_logs = []
+
+    def name(cid):
+        return options_by_id[cid].text
 
     while active:
+        # If only one candidate left, they win automatically
         if len(active) == 1:
             (only,) = active
-            return only, rounds
+            # no new round here, just finalize
+            round_logs.append([f"{name(only)} is the only remaining candidate and is elected."])
+            return only, rounds, round_logs
 
+        # Count first-choice votes among active candidates
         counts = {cid: 0 for cid in active}
         for ballot in ballots:
             for opt_id in ballot:
@@ -131,32 +148,73 @@ def irv_single_winner(ballots, active_candidates):
 
         rounds.append(counts.copy())
 
+        round_number = len(rounds)
         total_valid = sum(counts.values())
-        if total_valid == 0:
-            return None, rounds
+        # Base log for this round
+        base_log = [
+            f"Round {round_number}: first-preference counts "
+            + ", ".join(f"{name(cid)} = {counts[cid]}" for cid in sorted(active)),
+            f"Total valid ballots counted this round: {total_valid}.",
+        ]
 
+        if total_valid == 0:
+            base_log.append("No more usable ballots; no winner can be determined.")
+            round_logs.append(base_log)
+            return None, rounds, round_logs
+
+        # Check for majority (>50%)
         winner_id = max(counts, key=counts.get)
         if counts[winner_id] > total_valid / 2:
-            return winner_id, rounds
+            base_log.append(
+                f"{name(winner_id)} has a majority (>50%) and is elected as winner."
+            )
+            round_logs.append(base_log)
+            return winner_id, rounds, round_logs
 
+        # Find the lowest candidates
         min_votes = min(counts.values())
         lowest = [cid for cid, v in counts.items() if v == min_votes]
 
         if len(lowest) == 1:
             loser = lowest[0]
+            base_log.append(
+                f"No majority. {name(loser)} has the fewest first-preference votes "
+                f"({min_votes}) and is eliminated."
+            )
         else:
-            tie_loser = irv_tie_break_loser(ballots, lowest)
+            # Tie at the bottom (partial or full) → use deeper-pref tiebreak
+            tied_names = ", ".join(name(cid) for cid in sorted(lowest))
+            base_log.append(
+                f"No majority. Tie for lowest between: {tied_names}. "
+                "Applying deeper preference tie-break."
+            )
+            tie_loser, tie_log = irv_tie_break_loser(ballots, lowest, options_by_id)
+            base_log.extend(tie_log)
             if tie_loser is None:
-                tie_loser = min(lowest)  # final emergency fallback
+                # Still tied even after deeper prefs → pick a stable fallback
+                tie_loser = min(lowest)
+                base_log.append(
+                    f"Deep preference tie-break cannot distinguish; "
+                    f"falling back to deterministic rule and eliminating {name(tie_loser)}."
+                )
+            else:
+                base_log.append(f"Result of tie-break: {name(tie_loser)} is eliminated.")
             loser = tie_loser
 
         active.remove(loser)
+        round_logs.append(base_log)
+        # Continue loop with reduced active set
 
-    return None, rounds
+    # If we somehow exit loop with no active candidates
+    round_logs.append(["All candidates eliminated; no winner determined."])
+    return None, rounds, round_logs
 
-def irv_tie_break_loser(ballots, tied_candidates):
+
+def irv_tie_break_loser(ballots, tied_candidates, options_by_id):
     """
     Break a tie between candidates in tied_candidates using deeper preferences.
+
+    Returns (loser_id, log_lines).
 
     Stage 1: relative to the tied set only
       - Filter each ballot to only tied candidates.
@@ -170,18 +228,21 @@ def irv_tie_break_loser(ballots, tied_candidates):
     Stage 2 (fallback): use original full rankings
       - Do a similar process, but now counting appearances at absolute positions
         in the original ballots (no filtering), still only for tied candidates.
-
-    If still tied after both stages, return None so caller can fall back
-    to a final deterministic rule (e.g. lowest ID).
     """
+    log = []
     if not ballots:
-        return None
+        return None, log
 
     tied = set(tied_candidates)
     if len(tied) <= 1:
-        return next(iter(tied)) if tied else None
+        return (next(iter(tied)) if tied else None), log
+
+    def names(cids):
+        return ", ".join(options_by_id[cid].text for cid in sorted(cids))
 
     # -------- Stage 1: relative to tied set only --------
+    log.append(f"Tie-break among {names(tied)} using rankings restricted to tied candidates.")
+
     while len(tied) > 1:
         filtered_ballots = []
         max_depth = 0
@@ -193,6 +254,7 @@ def irv_tie_break_loser(ballots, tied_candidates):
                     max_depth = len(fb)
 
         if not filtered_ballots or max_depth == 0:
+            log.append("No more useful preference information in restricted rankings.")
             break
 
         reduced = False
@@ -204,25 +266,52 @@ def irv_tie_break_loser(ballots, tied_candidates):
                     cand_at_level = fb[level - 1]
                     counts[cand_at_level] += 1
 
+            # Everyone might be zero at this level; still handled by min()
             min_count = min(counts.values())
             lowest = [cid for cid, v in counts.items() if v == min_count]
 
+            pretty_counts = ", ".join(
+                f"{options_by_id[cid].text}: {counts[cid]}"
+                for cid in sorted(tied)
+            )
+            log.append(f"  At preference position {level} (restricted), counts: {pretty_counts}.")
+
             if len(lowest) < len(tied):
+                # We managed to narrow down to the "worst" subset
                 if len(lowest) == 1:
-                    return lowest[0]  # unique loser
+                    loser = lowest[0]
+                    log.append(
+                        f"  {options_by_id[loser].text} has the fewest appearances at this level "
+                        f"and is eliminated by tie-break (restricted rankings)."
+                    )
+                    return loser, log
                 else:
-                    tied = set(lowest)  # narrower tied set, restart from level 1
+                    log.append(
+                        f"  Lowest group at this level is {{ {names(lowest)} }}, "
+                        "narrowing tie to this subset and restarting from top."
+                    )
+                    tied = set(lowest)
                     reduced = True
                     break
 
         if not reduced:
+            log.append("Restricted rankings cannot narrow the tie further.")
             break  # cannot narrow further in stage 1
 
     if len(tied) == 1:
-        return next(iter(tied))
+        loser = next(iter(tied))
+        log.append(
+            f"Restricted rankings eventually identify {options_by_id[loser].text} "
+            "as the unique weakest candidate."
+        )
+        return loser, log
 
     # -------- Stage 2: fallback using original rankings --------
-    # Now use absolute positions in original ballots, only counting tied candidates.
+    log.append(
+        "Falling back to original full rankings to break remaining tie among "
+        f"{names(tied)}."
+    )
+
     all_max_depth = max((len(b) for b in ballots), default=0)
 
     while len(tied) > 1 and all_max_depth > 0:
@@ -236,45 +325,65 @@ def irv_tie_break_loser(ballots, tied_candidates):
                     if cand_at_level in tied:
                         counts[cand_at_level] += 1
 
-            # If everyone has 0 at this level, nothing to learn; go to next level
             if all(v == 0 for v in counts.values()):
-                continue
+                continue  # nothing to learn at this level
 
             min_count = min(counts.values())
             lowest = [cid for cid, v in counts.items() if v == min_count]
 
+            pretty_counts = ", ".join(
+                f"{options_by_id[cid].text}: {counts[cid]}"
+                for cid in sorted(tied)
+            )
+            log.append(f"  At absolute ballot position {level}, counts: {pretty_counts}.")
+
             if len(lowest) < len(tied):
                 if len(lowest) == 1:
-                    return lowest[0]  # unique loser in fallback stage
+                    loser = lowest[0]
+                    log.append(
+                        f"  {options_by_id[loser].text} is uniquely weakest at this position "
+                        "and is eliminated by fallback tie-break."
+                    )
+                    return loser, log
                 else:
+                    log.append(
+                        f"  Lowest group is {{ {names(lowest)} }}, "
+                        "narrowing tie to this subset and restarting from top."
+                    )
                     tied = set(lowest)
                     reduced = True
-                    break  # restart from level 1 with smaller tied set
+                    break
 
         if not reduced:
+            log.append("Original rankings also cannot narrow the tie further.")
             break
 
     if len(tied) == 1:
-        return next(iter(tied))
+        loser = next(iter(tied))
+        log.append(
+            f"After considering original rankings, {options_by_id[loser].text} "
+            "is the unique weakest candidate."
+        )
+        return loser, log
 
     # Still completely tied after both stages
-    return None
+    log.append(
+        "All deeper preference methods failed to break the tie; leaving final decision "
+        "to deterministic fallback in caller."
+    )
+    return None, log
 
 def tally_preference_sequential_irv(motion):
     """
     Multi-winner sequential IRV for a PREFERENCE motion.
 
-    - For seat 1: run IRV among all candidates.
-    - For seat 2: run IRV again with the same ballots, but excluding already-elected winners.
-    - Repeat until motion.num_winners winners are chosen or no more candidates.
-
     Returns a dict with:
       - winners: list of Option objects in election order
       - seats: list of per-seat info:
           {
-            "seat_number": 1-based,
+            "seat_number": int,
             "winner": Option,
-            "rounds": [
+            "rounds": [  # per-round counts for table display
               {
                 "round_number": int,
                 "counts": [ {"option": Option, "count": int}, ... ],
@@ -282,6 +391,7 @@ def tally_preference_sequential_irv(motion):
               },
               ...
             ],
+            "round_logs": [ [line1, line2, ...], ... ],  # narrative per round
           }
       - num_winners: requested number of winners
       - total_ballots: number of preference ballots used
@@ -299,7 +409,9 @@ def tally_preference_sequential_irv(motion):
         if not active_candidates:
             break
 
-        winner_id, rounds_raw = irv_single_winner(ballots, active_candidates)
+        winner_id, rounds_raw, round_logs = irv_single_winner(
+            ballots, active_candidates, options_by_id
+        )
         if winner_id is None:
             break
 
@@ -325,6 +437,7 @@ def tally_preference_sequential_irv(motion):
             "seat_number": seat_index + 1,
             "winner": options_by_id[winner_id],
             "rounds": rounds_info,
+            "round_logs": round_logs,
         })
 
     winners = [options_by_id[cid] for cid in winners_ids]
