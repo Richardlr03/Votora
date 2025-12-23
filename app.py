@@ -10,7 +10,7 @@ app = Flask(__name__)
 # SQLite DB file in the project folder
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 db_path = os.path.join(BASE_DIR, "app.db")
-app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
+app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://TAMLZ03:20050329@localhost:3306/voting?charset=utf8mb4"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SECRET_KEY"] = "dev-secret-key-change-later"  # needed later for sessions
 
