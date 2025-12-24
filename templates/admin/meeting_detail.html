@@ -74,7 +74,7 @@
               <div class="list-group list-group-flush">
                 {% for motion in meeting.motions %}
                   <div class="list-group-item px-0 py-3">
-                    <div class="d-flex align-items-start justify-content-between gap-2">
+                    <div class="d-flex align-items-center justify-content-between gap-2">
                       <div class="pe-2">
                         <div class="fw-semibold mb-1">{{ motion.title }}</div>
                         <div class="d-flex flex-wrap gap-2 align-items-center">
@@ -91,17 +91,27 @@
                           <span class="badge text-bg-{{ status_cls }}">
                             {{ motion.status }}
                           </span>
-
-                          {% if motion.type == "PREFERENCE" and motion.num_winners %}
-                            <span class="badge text-bg-light border">
-                              <i class="bi bi-trophy me-1"></i>Winners: {{ motion.num_winners }}
-                            </span>
-                          {% endif %}
                         </div>
                       </div>
 
-                      <div class="text-muted small text-end">
-                        <i class="bi bi-chevron-right"></i>
+                      <div class="d-flex gap-2">
+                        <button type="button" 
+                                class="btn btn-sm btn-outline-secondary edit-motion-btn" 
+                                data-motion-id="{{ motion.id }}" 
+                                data-motion-title="{{ motion.title }}"
+                                data-motion-type="{{ motion.type }}"
+                                data-motion-winners="{{ motion.num_winners or '' }}"
+                                data-motion-options="{% for c in motion.options %}{{ c.text }}{{ '\n' if not loop.last }}{% endfor %}"
+                                title="Edit Motion">    
+                          <i class="bi bi-pencil"></i>
+                        </button>
+                        <button type="button" 
+                                class="btn btn-sm btn-outline-danger delete-motion-btn" 
+                                data-motion-id="{{ motion.id }}" 
+                                data-motion-title="{{ motion.title }}"
+                                title="Delete Motion">
+                          <i class="bi bi-trash"></i>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -340,6 +350,81 @@
     </div>
   </div>
 
+  <div class="modal fade" id="editMotionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-light border-0">
+          <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Edit Motion</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="editMotionForm" method="POST">
+          <div class="modal-body p-3 p-md-4">
+            <div class="alert alert-danger d-none" id="editMotionError"></div>
+
+            <div class="mb-3">
+              <label for="editMotionTitle" class="form-label">Motion Title</label>
+              <input type="text" class="form-control" id="editMotionTitle" name="title" required>
+            </div>
+
+            <div class="mb-3">
+              <label for="editMotionType" class="form-label">Motion Type</label>
+              <select class="form-select" id="editMotionType" name="type" required>
+                <option value="YES_NO">Yes / Abstain</option>
+                <option value="CANDIDATE">Candidate election (choose 1)</option>
+                <option value="PREFERENCE">Preference voting (ranked, multiple winners)</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label for="editMotionOptions" class="form-label">
+                Candidates (one per line)
+              </label>
+              <textarea
+                class="form-control"
+                id = "editMotionOptions"
+                name="options"
+                rows="3"
+              ></textarea>
+            </div>
+
+            <div class="mb-3" id="editNumWinnersGroup">
+              <label for="editMotionNumWinners" class="form-label">
+                Number of Winners
+              </label>
+              <input
+                type = "numbers"
+                class = "form-control"
+                id = "editMotionNumWinners"
+                name = "num_winners"
+                min="1">
+            </div>
+          <div class="modal-footer bg-light border-0">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="editMotionSubmit">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="deleteMotionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header border-0">
+          <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Delete Motion</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          Are you sure you want to delete <strong id="deleteMotionTitleDisplay"></strong>? All votes cast for this motion will be permanently removed.
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" id="confirmDeleteMotion">Delete Motion</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Keep your existing JS exactly (unchanged) -->
   <script>
     window.addEventListener("DOMContentLoaded", function () {
@@ -521,6 +606,78 @@
           });
           if (response.ok) window.location.reload();
           else alert("Failed to delete voter");
+        } catch (err) { console.error(err); }
+      });
+
+      // --- Edit and Delete Motion Logic ---
+      const editMotionModal = new bootstrap.Modal(document.getElementById('editMotionModal'));
+      const editTypeSelect = document.getElementById("editMotionType");
+      const editOptionsText = document.getElementById("editMotionOptions");
+      const editWinnersGroup = document.getElementById("editNumWinnersGroup");
+
+      const deleteMotionModal = new bootstrap.Modal(document.getElementById('deleteMotionModal'));
+      let currentMotionId = null;
+
+      function updateEditVisibility() {
+        const t = editTypeSelect.value;
+        const needsCandidates = t === "CANDIDATE" || t === "PREFERENCE";
+        editOptionsText.disabled = !needsCandidates;
+        editOptionsText.classList.toggle("bg-light", !needsCandidates);
+        editWinnersGroup.style.display = (t === "PREFERENCE") ? "block" : "none";
+      }
+
+      editTypeSelect.addEventListener("change", updateEditVisibility);
+
+      document.querySelectorAll('.edit-motion-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          currentMotionId = btn.dataset.motionId;
+          document.getElementById('editMotionTitle').value = btn.dataset.motionTitle;
+          editTypeSelect.value = btn.dataset.motionType;
+          editOptionsText.value = btn.dataset.motionOptions;
+          document.getElementById('editMotionNumWinners').value = btn.dataset.motionWinners;
+          
+          updateEditVisibility();
+          editMotionModal.show();
+        });
+      });
+
+      // Submit Edit Motion Form
+      document.getElementById('editMotionForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const url = `/admin/motion/${currentMotionId}/update`; 
+        
+        try {
+          const response = await fetch(url, {
+            method: 'POST',
+            body: formData,
+            headers: { "X-Requested-With": "XMLHttpRequest" }
+          });
+          if (response.ok) window.location.reload();
+          else alert("Failed to update motion title.");
+        } catch (err) { console.error(err); }
+      });
+
+      // Open Delete Motion Modal
+      document.querySelectorAll('.delete-motion-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          currentMotionId = btn.dataset.motionId;
+          document.getElementById('deleteMotionTitleDisplay').textContent = btn.dataset.motionTitle;
+          deleteMotionModal.show();
+        });
+      });
+
+      // Confirm Delete Motion
+      document.getElementById('confirmDeleteMotion').addEventListener('click', async () => {
+        const url = `/admin/motion/${currentMotionId}/delete`;
+        
+        try {
+          const response = await fetch(url, { 
+            method: 'POST',
+            headers: { "X-Requested-With": "XMLHttpRequest" } 
+          });
+          if (response.ok) window.location.reload();
+          else alert("Failed to delete motion.");
         } catch (err) { console.error(err); }
       });
     });

@@ -805,6 +805,43 @@ def delete_user(voter_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": "Database error: Could not delete voter"}), 500
+    
+@app.route("/admin/motion/<int:motion_id>/update", methods=["POST"])
+def update_motion(motion_id):
+    """Update motion"""
+    motion = Motion.query.get_or_404(motion_id)
+    motion.title = request.form.get('title')
+    motion.type = request.form.get('type')
+    motion.num_winners = request.form.get('num_winners', type=int) or 1
+
+    if motion.type in ['CANDIDATE', 'PREFERENCE']:
+        # Clear existing candidates first
+        Option.query.filter_by(motion_id=motion.id).delete()
+
+        raw_options = request.form.get('options', '')
+        for name in [c.strip() for c in raw_options.split('\n') if c.strip()]:
+            new_c = Option(text=name, motion_id=motion.id)
+            db.session.add(new_c)
+    
+    try:
+        db.session.commit()
+        return jsonify({"success": True}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Database error: Could not update motion"}), 500
+    
+@app.route("/admin/motion/<int:motion_id>/delete", methods=["POST"])
+def delete_motion(motion_id):
+    """Deletes a motion and their records"""
+    motion = Motion.query.get_or_404(motion_id)
+    
+    try:
+        db.session.delete(motion)
+        db.session.commit()
+        return jsonify({"success": True}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Database error: Could not delete motion"}), 500
 
 @app.route("/vote/<code>")
 def voter_dashboard(code):
