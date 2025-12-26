@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import and_
 import uuid
@@ -776,6 +776,72 @@ def meeting_votes(meeting_id):
         motions_detail=motions_detail,
     )
 
+@app.route("/admin/voter/<int:voter_id>/update", methods=["POST"])
+def update_user(voter_id):
+    """Update voter's name"""
+    voter = Voter.query.get_or_404(voter_id)
+    new_name = request.form.get("name")
+
+    if not new_name or len(new_name.strip()) == 0:
+        return jsonify({"error": "Voter name is required"}), 400
+    
+    try:
+        voter.name = new_name
+        db.session.commit()
+        return jsonify({"success": True}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Database error: Could not update voter"}), 500
+    
+@app.route("/admin/voter/<int:voter_id>/delete", methods=["POST"])
+def delete_user(voter_id):
+    """Deletes a voter and their records"""
+    voter = Voter.query.get_or_404(voter_id)
+    
+    try:
+        db.session.delete(voter)
+        db.session.commit()
+        return jsonify({"success": True}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Database error: Could not delete voter"}), 500
+    
+@app.route("/admin/motion/<int:motion_id>/update", methods=["POST"])
+def update_motion(motion_id):
+    """Update motion"""
+    motion = Motion.query.get_or_404(motion_id)
+    motion.title = request.form.get('title')
+    motion.type = request.form.get('type')
+    motion.num_winners = request.form.get('num_winners', type=int) or 1
+
+    if motion.type in ['CANDIDATE', 'PREFERENCE']:
+        # Clear existing candidates first
+        Option.query.filter_by(motion_id=motion.id).delete()
+
+        raw_options = request.form.get('options', '')
+        for name in [c.strip() for c in raw_options.split('\n') if c.strip()]:
+            new_c = Option(text=name, motion_id=motion.id)
+            db.session.add(new_c)
+    
+    try:
+        db.session.commit()
+        return jsonify({"success": True}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Database error: Could not update motion"}), 500
+    
+@app.route("/admin/motion/<int:motion_id>/delete", methods=["POST"])
+def delete_motion(motion_id):
+    """Deletes a motion and their records"""
+    motion = Motion.query.get_or_404(motion_id)
+    
+    try:
+        db.session.delete(motion)
+        db.session.commit()
+        return jsonify({"success": True}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Database error: Could not delete motion"}), 500
 
 @app.route("/vote/<code>")
 def voter_dashboard(code):
