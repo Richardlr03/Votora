@@ -567,12 +567,14 @@ def logout():
     return redirect(url_for("login"))
 
 @app.route("/admin/meetings")
+@login_required
 def admin_meetings():
     # For now, just list all meetings in plain form
     meetings = Meeting.query.all()
     return render_template("admin/meetings.html", meetings=meetings)
 
 @app.route("/admin/meetings/new", methods=["GET", "POST"])
+@login_required
 def create_meeting():
     if request.method == "GET":
         # Modal posts here; no standalone page needed. Redirect to admin list.
@@ -606,11 +608,13 @@ def create_meeting():
     return redirect(url_for('admin_meetings'))
 
 @app.route("/admin/meetings/<int:meeting_id>")
+@login_required
 def meeting_detail(meeting_id):
     meeting = Meeting.query.get_or_404(meeting_id)
     return render_template("admin/meeting_detail.html", meeting=meeting)
 
 @app.route("/admin/meetings/<int:meeting_id>/delete", methods=["POST"])
+@login_required
 def delete_meeting(meeting_id):
     meeting = Meeting.query.get_or_404(meeting_id)
 
@@ -636,6 +640,7 @@ def delete_meeting(meeting_id):
     return redirect(url_for("admin_meetings"))
 
 @app.route("/admin/meetings/<int:meeting_id>/motions/new", methods=["GET", "POST"])
+@login_required
 def create_motion(meeting_id):
     meeting = Meeting.query.get_or_404(meeting_id)
 
@@ -710,6 +715,7 @@ def create_motion(meeting_id):
     return redirect(url_for("meeting_detail", meeting_id=meeting.id))
 
 @app.route("/admin/meetings/<int:meeting_id>/voters/new", methods=["GET", "POST"])
+@login_required
 def create_voter(meeting_id):
     meeting = Meeting.query.get_or_404(meeting_id)
 
@@ -751,6 +757,7 @@ def create_voter(meeting_id):
     return redirect(url_for("meeting_detail", meeting_id=meeting.id))
 
 @app.route("/admin/meetings/<int:meeting_id>/results")
+@login_required
 def meeting_results(meeting_id):
     meeting = Meeting.query.get_or_404(meeting_id)
 
@@ -800,6 +807,7 @@ def meeting_results(meeting_id):
     )
 
 @app.route("/admin/meetings/<int:meeting_id>/votes")
+@login_required
 def meeting_votes(meeting_id):
     meeting = Meeting.query.get_or_404(meeting_id)
 
@@ -861,6 +869,7 @@ def meeting_votes(meeting_id):
     )
 
 @app.route("/admin/voter/<int:voter_id>/update", methods=["POST"])
+@login_required
 def update_user(voter_id):
     """Update voter's name"""
     voter = Voter.query.get_or_404(voter_id)
@@ -878,6 +887,7 @@ def update_user(voter_id):
         return jsonify({"error": "Database error: Could not update voter"}), 500
     
 @app.route("/admin/voter/<int:voter_id>/delete", methods=["POST"])
+@login_required
 def delete_user(voter_id):
     """Deletes a voter and their records"""
     voter = Voter.query.get_or_404(voter_id)
@@ -891,6 +901,7 @@ def delete_user(voter_id):
         return jsonify({"error": "Database error: Could not delete voter"}), 500
     
 @app.route("/admin/motion/<int:motion_id>/update", methods=["POST"])
+@login_required
 def update_motion(motion_id):
     """Update motion"""
     motion = Motion.query.get_or_404(motion_id)
@@ -915,6 +926,7 @@ def update_motion(motion_id):
         return jsonify({"error": "Database error: Could not update motion"}), 500
     
 @app.route("/admin/motion/<int:motion_id>/delete", methods=["POST"])
+@login_required
 def delete_motion(motion_id):
     """Deletes a motion and their records"""
     motion = Motion.query.get_or_404(motion_id)
