@@ -131,6 +131,7 @@
       {% if messages %}
         <div class="container mt-3">
           {% for category, message in messages %}
+            {% if category not in ['reset_error', 'login_error'] %}
             {% set bs =
               'success' if category == 'success'
               else 'danger' if category == 'error'
@@ -154,6 +155,7 @@
               </div>
               <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
+            {% endif %}
           {% endfor %}
         </div>
       {% endif %}

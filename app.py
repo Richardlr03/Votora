@@ -572,18 +572,12 @@ def forgot_password():
         user = User.query.filter_by(email=email, username=username).first()
 
         if not user:
-            flash("No account found with that username and email.", "danger")
-            return redirect(url_for("forgot_password"))
-
-        # Check if new passwords match
-        if new_password != confirm_password:
-            flash("New passwords do not match.", "danger")
+            flash("No account found with the username and email.", "reset_error")
             return redirect(url_for("forgot_password"))
 
         # Update the user's password
         user.password_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
         db.session.commit()
-
         flash("Password reset successfully!", "success")
         return redirect(url_for("login"))
     
