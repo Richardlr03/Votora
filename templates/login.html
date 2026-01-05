@@ -14,6 +14,14 @@
                 <p class="text-muted small">Please enter your credentials</p>
             </div>
 
+            {% if error %}
+            <div class="alert alert-danger py-2 px-3 border-0 small mb-4 d-flex align-items-center" 
+                style="background-color: rgba(220, 53, 69, 0.1); color: #dc3545; border-radius: 12px;">
+                <i class="bi bi-exclamation-circle-fill me-2"></i>
+                <div>{{ error }}</div>
+            </div>
+            {% endif %}
+
             <form method="POST" action="{{ url_for('login') }}">
                 <div class="mb-3">
                     <label for="username" class="form-label small fw-semibold">Username</label>

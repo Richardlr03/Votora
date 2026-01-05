@@ -540,26 +540,25 @@ def check_username():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    error = None
+
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
         remember = True if request.form.get("remember") else False
 
-        # 1. Fetch user from MySQL
+        # Fetch user from MySQL
         user = User.query.filter_by(username=username).first()
 
-        # 2. Verify user exists and check password hash
+        # Verify user exists and check password hash
         if not user or not check_password_hash(user.password_hash, password):
-            flash("Invalid username or password. Please try again.", "danger")
-            return redirect(url_for("login"))
+            error = "Invalid username or password."
+        else:
+            login_user(user, remember=remember)
+            flash(f"Welcome back, {user.username}!", "success")
+            return redirect(url_for("admin_meetings"))
 
-        # 3. Log the user in and establish the session
-        login_user(user, remember=remember)
-        
-        flash(f"Welcome back, {user.username}!", "success")
-        return redirect(url_for("admin_meetings"))
-
-    return render_template("login.html")
+    return render_template("login.html", error=error)
 
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
