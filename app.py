@@ -561,6 +561,35 @@ def login():
 
     return render_template("login.html")
 
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        username = request.form.get("username")
+        email = request.form.get("email")
+        new_password = request.form.get("new_password")
+        confirm_password = request.form.get("confirm_password")
+
+        # Verify user exists with given username and email
+        user = User.query.filter_by(email=email, username=username).first()
+
+        if not user:
+            flash("No account found with that username and email.", "danger")
+            return redirect(url_for("forgot_password"))
+
+        # Check if new passwords match
+        if new_password != confirm_password:
+            flash("New passwords do not match.", "danger")
+            return redirect(url_for("forgot_password"))
+
+        # Update the user's password
+        user.password_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
+        db.session.commit()
+
+        flash("Password reset successfully!", "success")
+        return redirect(url_for("login"))
+    
+    return render_template("forgot_password.html")
+
 @app.route("/logout")
 @login_required
 def logout():
