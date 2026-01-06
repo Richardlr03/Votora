@@ -1,8 +1,10 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import and_
 import uuid
 import os
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 
@@ -16,7 +18,24 @@ app.config["SECRET_KEY"] = "dev-secret-key-change-later"  # needed later for ses
 
 db = SQLAlchemy(app)
 
-# --- Models (simple for now) ---
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login' # Redirect here if @login_required is triggered
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+# --- Models ---
+
+class User(UserMixin, db.Model):
+    __tablename__ = "users"
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(150), unique=True, nullable=False)
+    email = db.Column(db.String(150), unique=True, nullable=False) # Store email
+    password_hash = db.Column(db.String(256), nullable=False) # Store hashed passwords
+
+    meetings = db.relationship("Meeting", backref="admin", lazy=True)
 
 class Meeting(db.Model):
     __tablename__ = "meetings"
@@ -24,6 +43,7 @@ class Meeting(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
+    admin_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
 
     # relationships
     motions = db.relationship("Motion", backref="meeting", lazy=True)
@@ -481,14 +501,104 @@ def tally_preference_sequential_irv(motion):
 def index():
     return render_template("index.html")
 
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if request.method == "POST":
+        username = request.form.get("username")
+        email = request.form.get("email")
+        password = request.form.get("password")
+        confirm_password = request.form.get("confirm_password")
+        
+        # Create new user and hash the password
+        new_user = User(
+            username = username,
+            email = email,
+            password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+        )
+
+        try:
+            db.session.add(new_user)
+            db.session.commit()
+            flash("Account created successfully! Please log in.", "success")
+            return redirect(url_for("login"))
+        except Exception as e:
+            db.session.rollback()
+            flash("Database error: Could not register user.", "danger")
+            return redirect(url_for("signup"))
+        
+    return render_template("signup.html")
+
+@app.route("/check-username", methods=["POST"])
+def check_username():
+    data = request.get_json()
+    username = data.get("username", "").strip()
+
+    # Query the database for the username
+    user = User.query.filter_by(username=username).first()
+
+    return jsonify({"exists": user is not None})
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    error = None
+
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        remember = True if request.form.get("remember") else False
+
+        # Fetch user from MySQL
+        user = User.query.filter_by(username=username).first()
+
+        # Verify user exists and check password hash
+        if not user or not check_password_hash(user.password_hash, password):
+            error = "Invalid username or password."
+        else:
+            login_user(user, remember=remember)
+            flash(f"Welcome back, {user.username}!", "success")
+            return redirect(url_for("admin_meetings"))
+
+    return render_template("login.html", error=error)
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        username = request.form.get("username")
+        email = request.form.get("email")
+        new_password = request.form.get("new_password")
+        confirm_password = request.form.get("confirm_password")
+
+        # Verify user exists with given username and email
+        user = User.query.filter_by(email=email, username=username).first()
+
+        if not user:
+            flash("No account found with the username and email.", "reset_error")
+            return redirect(url_for("forgot_password"))
+
+        # Update the user's password
+        user.password_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
+        db.session.commit()
+        flash("Password reset successfully!", "success")
+        return redirect(url_for("login"))
+    
+    return render_template("forgot_password.html")
+
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user() # Clears the session cookie
+    flash("You have been logged out.", "info")
+    return redirect(url_for("login"))
 
 @app.route("/admin/meetings")
+@login_required
 def admin_meetings():
     # For now, just list all meetings in plain form
-    meetings = Meeting.query.all()
+    meetings = Meeting.query.filter_by(admin_id=current_user.id).all()
     return render_template("admin/meetings.html", meetings=meetings)
 
 @app.route("/admin/meetings/new", methods=["GET", "POST"])
+@login_required
 def create_meeting():
     if request.method == "GET":
         # Modal posts here; no standalone page needed. Redirect to admin list.
@@ -505,7 +615,7 @@ def create_meeting():
         return redirect(url_for("admin_meetings"))
 
     # Create and save meeting
-    new_meeting = Meeting(title=title, description=description)
+    new_meeting = Meeting(title=title, description=description, admin_id=current_user.id)
     db.session.add(new_meeting)
     db.session.commit()
 
@@ -522,11 +632,13 @@ def create_meeting():
     return redirect(url_for('admin_meetings'))
 
 @app.route("/admin/meetings/<int:meeting_id>")
+@login_required
 def meeting_detail(meeting_id):
     meeting = Meeting.query.get_or_404(meeting_id)
     return render_template("admin/meeting_detail.html", meeting=meeting)
 
 @app.route("/admin/meetings/<int:meeting_id>/delete", methods=["POST"])
+@login_required
 def delete_meeting(meeting_id):
     meeting = Meeting.query.get_or_404(meeting_id)
 
@@ -552,6 +664,7 @@ def delete_meeting(meeting_id):
     return redirect(url_for("admin_meetings"))
 
 @app.route("/admin/meetings/<int:meeting_id>/motions/new", methods=["GET", "POST"])
+@login_required
 def create_motion(meeting_id):
     meeting = Meeting.query.get_or_404(meeting_id)
 
@@ -626,6 +739,7 @@ def create_motion(meeting_id):
     return redirect(url_for("meeting_detail", meeting_id=meeting.id))
 
 @app.route("/admin/meetings/<int:meeting_id>/voters/new", methods=["GET", "POST"])
+@login_required
 def create_voter(meeting_id):
     meeting = Meeting.query.get_or_404(meeting_id)
 
@@ -667,6 +781,7 @@ def create_voter(meeting_id):
     return redirect(url_for("meeting_detail", meeting_id=meeting.id))
 
 @app.route("/admin/meetings/<int:meeting_id>/results")
+@login_required
 def meeting_results(meeting_id):
     meeting = Meeting.query.get_or_404(meeting_id)
 
@@ -716,6 +831,7 @@ def meeting_results(meeting_id):
     )
 
 @app.route("/admin/meetings/<int:meeting_id>/votes")
+@login_required
 def meeting_votes(meeting_id):
     meeting = Meeting.query.get_or_404(meeting_id)
 
@@ -777,6 +893,7 @@ def meeting_votes(meeting_id):
     )
 
 @app.route("/admin/voter/<int:voter_id>/update", methods=["POST"])
+@login_required
 def update_user(voter_id):
     """Update voter's name"""
     voter = Voter.query.get_or_404(voter_id)
@@ -794,6 +911,7 @@ def update_user(voter_id):
         return jsonify({"error": "Database error: Could not update voter"}), 500
     
 @app.route("/admin/voter/<int:voter_id>/delete", methods=["POST"])
+@login_required
 def delete_user(voter_id):
     """Deletes a voter and their records"""
     voter = Voter.query.get_or_404(voter_id)
@@ -807,6 +925,7 @@ def delete_user(voter_id):
         return jsonify({"error": "Database error: Could not delete voter"}), 500
     
 @app.route("/admin/motion/<int:motion_id>/update", methods=["POST"])
+@login_required
 def update_motion(motion_id):
     """Update motion"""
     motion = Motion.query.get_or_404(motion_id)
@@ -831,6 +950,7 @@ def update_motion(motion_id):
         return jsonify({"error": "Database error: Could not update motion"}), 500
     
 @app.route("/admin/motion/<int:motion_id>/delete", methods=["POST"])
+@login_required
 def delete_motion(motion_id):
     """Deletes a motion and their records"""
     motion = Motion.query.get_or_404(motion_id)

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Login - Voting Platform{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-center" style="min-height: 70vh;">
+    <div class="card border-0 shadow-lg" style="width: 100%; max-width: 400px; background: rgba(255,255,255,0.9); border-radius: 20px;">
+        <div class="card-body p-4 p-md-5">
+            <div class="text-center mb-4">
+                <div class="vp-brand-badge mx-auto mb-3" style="width: 50px; height: 50px;">
+                    <i class="bi bi-shield-lock-fill fs-4 text-primary"></i>
+                </div>
+                <h2 class="h4 fw-bold mb-1">Admin Login</h2>
+                <p class="text-muted small">Please enter your credentials</p>
+            </div>
+
+            {% if error %}
+            <div class="alert alert-danger py-2 px-3 border-0 small mb-4 d-flex align-items-center" 
+                style="background-color: rgba(220, 53, 69, 0.1); color: #dc3545; border-radius: 12px;">
+                <i class="bi bi-exclamation-circle-fill me-2"></i>
+                <div>{{ error }}</div>
+            </div>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('login') }}">
+                <div class="mb-3">
+                    <label for="username" class="form-label small fw-semibold">Username</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control bg-light border-start-0" id="username" name="username" required>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <label for="password" class="form-label small fw-semibold">Password</label>
+                        <a href="{{ url_for('forgot_password') }}" class="small text-decoration-none">Forgot Password?</a>
+                    </div>
+                    <input type="password" class="form-control bg-light" id="password" name="password" required>
+                </div>
+
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                    <label class="form-check-label small text-muted" for="remember">Remember me</label>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold shadow-sm mb-3">
+                    Log In
+                </button>
+
+                <div class="text-center">
+                    <span class="text-muted small">Need an account?</span>
+                    <a href="{{ url_for('signup') }}" class="small fw-bold text-decoration-none">Sign Up</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
