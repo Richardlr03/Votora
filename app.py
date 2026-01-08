@@ -976,10 +976,24 @@ def update_motion(motion_id):
     motion.title = request.form.get('title')
     motion.type = request.form.get('type')
     motion.num_winners = request.form.get('num_winners', type=int) or 1
+    # allow updating status from the edit form
+    new_status = request.form.get('status')
+    if new_status:
+        allowed_statuses = {"DRAFT", "PENDING", "OPEN", "CLOSED", "APPROVED", "REJECTED", "PASSED", "FAILED"}
+        if new_status not in allowed_statuses:
+            return jsonify({"error": "Invalid status value"}), 400
+        motion.status = new_status
 
     if motion.type in ['CANDIDATE', 'PREFERENCE']:
-        # Clear existing candidates first
-        Option.query.filter_by(motion_id=motion.id).delete()
+        # Clear existing candidates first. Remove any votes tied to this motion
+        # to avoid foreign-key constraint errors when deleting options.
+        try:
+            Vote.query.filter_by(motion_id=motion.id).delete(synchronize_session=False)
+        except Exception:
+            # If Vote table not present or other issue, continue and let commit handle errors
+            pass
+
+        Option.query.filter_by(motion_id=motion.id).delete(synchronize_session=False)
 
         raw_options = request.form.get('options', '')
         for name in [c.strip() for c in raw_options.split('\n') if c.strip()]:
