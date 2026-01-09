@@ -1021,6 +1021,25 @@ def delete_motion(motion_id):
         db.session.rollback()
         return jsonify({"error": "Database error: Could not delete motion"}), 500
 
+@app.route("/update_motion_status/<int:motion_id>", methods=["POST"])
+@login_required
+def update_motion_status(motion_id):
+    motion = Motion.query.get_or_404(motion_id)
+    # Convert to uppercase to match the allowed list
+    new_status = request.form.get("status", "").upper() 
+
+    allowed_statuses = {"DRAFT", "OPEN", "CLOSED"} # Add others as needed
+
+    if new_status in allowed_statuses:
+        motion.status = new_status
+        db.session.commit() # This saves it to the DB
+        flash(f"Status updated to {new_status}", "success")
+    else:
+        flash("Invalid status selection.", "danger")
+        
+    # Ensure you redirect to meeting_detail so the UI updates
+    return redirect(url_for("meeting_detail", meeting_id=motion.meeting_id))
+
 @app.route("/vote/<code>")
 def voter_dashboard(code):
     if session.get('voter_code') != code:
