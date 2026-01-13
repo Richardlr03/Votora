@@ -10,3 +10,4 @@
 1. (feat) - Implementing new features
 2. (update) - Updating and modifying an existing feature
 3. (update UI) - Modifying certain UI
+4. (bug fix) - Fixing bugs
