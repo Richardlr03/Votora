@@ -707,6 +707,26 @@ def delete_meeting(meeting_id):
     flash("Meeting deleted.", "success")
     return redirect(url_for("admin_meetings"))
 
+@app.route("/admin/meetings/<int:meeting_id>/update", methods=["POST"])
+@login_required
+def update_meeting(meeting_id):
+    meeting = Meeting.query.get_or_404(meeting_id)
+
+    # Ensure only owner can edit
+    if meeting.admin_id != current_user.id:
+        abort(403)
+
+    meeting.title = request.form.get("title", "").strip()
+    meeting.description = request.form.get("description", "").strip()
+
+    if not meeting.title:
+        flash("Title is required.", "danger")
+        return redirect(url_for("meeting_detail", meeting_id=meeting_id))
+    
+    db.session.commit()
+    flash("Meeting updated successfully.", "success")
+    return redirect(url_for("meeting_detail", meeting_id=meeting_id))
+
 @app.route("/admin/meetings/<int:meeting_id>/motions/new", methods=["GET", "POST"])
 @login_required
 def create_motion(meeting_id):
