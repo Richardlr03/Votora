@@ -526,7 +526,7 @@ def signup():
             flash("Database error: Could not register user.", "danger")
             return redirect(url_for("signup"))
         
-    return render_template("signup.html")
+    return render_template("login_signup/signup.html")
 
 @app.route("/check-username", methods=["POST"])
 def check_username():
@@ -558,7 +558,7 @@ def login():
             flash(f"Welcome back, {user.username}!", "success")
             return redirect(url_for("admin_meetings"))
 
-    return render_template("login.html", error=error)
+    return render_template("login_signup/login.html", error=error)
 
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
@@ -594,7 +594,7 @@ def forgot_password():
         flash("Password reset successfully!", "success")
         return redirect(url_for("login"))
     
-    return render_template("forgot_password.html")
+    return render_template("login_signup/forgot_password.html")
 
 @app.route("/logout")
 @login_required
