@@ -36,10 +36,17 @@
             <div id="collapseTwo" class="accordion-collpase collapse" data-bs-parent="#votingAccordion">
                 <div class="accordion-body bg-light-subtle">
                     <p class="small text-muted mb-3">A "First-Past-The-Post" system used for choosing a single individual from a list.</p>
-                    <ul class="small ps-3 mb-0">
+                    <ul class="small ps-3 mb-10">
                         <li class="mb-2"><b>Choice:</b> Voters select exactly one candidate.</li>
                         <li><b>Winner:</b> The candidate with the highest number of individual votes is elected.</li>
                     </ul>
+
+                    <div class="p-3 bg-warning-subtle rounded-3 border border-warning-subtle">
+                        <h6 class="fw-bold small mb-2"><i class="bi bi-exclamation-circle me-2"></i>Handling Tie Votes</h6>
+                        <p class="small mb-0">
+                            If multiple candidates receive the exact same highest number of votes, the election is considered a draw. In this event, the <strong>Admin is encouraged to create a new "Candidate Election" motion</strong> consisting only of the tied candidates and run a secondary runoff election to determine a clear winner.
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -50,15 +57,30 @@
                     <i class="bi bi-list-ol text-info me-3"></i> Preference Voting (Ranked Choice)
                 </button>
             </h2>
-            <div id="collapseThree" class="accordion-collpase collapse" data-bs-parent="#votingAccordion">
+            <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#votingAccordion">
                 <div class="accordion-body bg-light-subtle">
-                    <p class="small text-muted mb-3">Uses Sequential Instant Runoff Voting (IRV) to ensure the winner has broad support.</p>
-                    <ul class="small ps-3 mb-0">
-                        <li class="mb-2"><b>Ranking:</b> Voters rank candidates in order of preference (1st, 2nd, 3rd...).</li>
-                        <li class="mb-2"><b>Elimination:</b> If no one has a majority, the candidate with the fewest votes is eliminated.</li>
-                        <li class="mb-2"><b>Transfer:</b> Votes for eliminated candidates are transferred to the voter's next available preference.</li>
-                        <li><b>Multi-winner:</b> If the motion specifies multiple winners, the process repeats sequentially until all seats are filled.</li>
+                    <p class="small text-muted mb-3">Uses a <strong>Sequential Instant Runoff (IRV)</strong> system to ensure every winner has broad support.</p>
+                    
+                    <h6 class="fw-bold small">The Round-by-Round Process:</h6>
+                    <ol class="small ps-3">
+                        <li class="mb-2"><strong>Initial Count:</strong> The system tallies every voter's #1 preference.</li>
+                        <li class="mb-2"><strong>Majority Check:</strong> If a candidate has more than 50% of the active votes, they are elected.</li>
+                        <li class="mb-2"><strong>Elimination:</strong> If no majority exists, the candidate with the fewest votes is removed. Candidates with zero votes are automatically removed first to streamline the count.</li>
+                        <li class="mb-2"><strong>Redistribution:</strong> Ballots belonging to the eliminated candidate are transferred to the voter's <em>next available</em> preference.</li>
+                    </ol>
+
+                    <h6 class="fw-bold small mt-3">Detailed Tie-Break Logic:</h6>
+                    <p class="small text-muted mb-2">If two or more candidates are tied for last place, the system resolves it in three stages:</p>
+                    <ul class="small ps-3">
+                        <li class="mb-2"><strong>Stage 1 (Restricted Audit):</strong> The system creates a mini-election using only the tied candidates to see who was ranked lower relative to one another.</li>
+                        <li class="mb-2"><strong>Stage 2 (Absolute Audit):</strong> If still tied, the system scans every ballot at each rank level sequentially (starting at 1st choice, then 2nd, then 3rd, etc.). The candidate who has the fewest total votes at the highest possible rank is eliminated. This ensures we exhaust all preference data before moving to a fallback.</li>
+                        <li><strong>Stage 3 (Stable Fallback):</strong> In the rare case of a perfect mathematical tie at all levels, a deterministic rule is applied to ensure a consistent result.</li>
                     </ul>
+
+                    
+
+                    <h6 class="fw-bold small mt-3">For Multiple Winners:</h6>
+                    <p class="small mb-0">Once a seat is filled, that winner is removed from all ballots. Their original votes are transferred to the next listed preference, and the entire IRV process begins again from Round 1 to fill the next seat.</p>
                 </div>
             </div>
         </div>
