@@ -80,48 +80,53 @@
                 {% for motion in meeting.motions %}
                   <div class="list-group-item px-0 py-3">
                     <div class="fw-semibold mb-1">{{ motion.title }}</div>
-                    <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-                      <span class="badge text-bg-light border">
-                        <i class="bi bi-tag me-1"></i>{{ motion.type }}
-                      </span>
+                    <div class="d-flex align-items-start justify-content-between gap-2">
+                      <div>
+                        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                          <span class="badge text-bg-light border">
+                            <i class="bi bi-tag me-1"></i>{{ motion.type }}
+                          </span>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                          {% set status_cls =
+                            'success' if motion.status in ['OPEN', 'APPROVED', 'PASSED']
+                            else 'secondary' if motion.status in ['DRAFT', 'PENDING']
+                            else 'danger' if motion.status in ['REJECTED', 'FAILED', 'CLOSED']
+                            else 'info'
+                          %}
+                          <span class="badge text-bg-{{ status_cls }}">
+                            {{ motion.status }}
+                          </span>
+                        </div>
+                      </div>
 
-                      {% set status_cls =
-                        'success' if motion.status in ['OPEN', 'APPROVED', 'PASSED']
-                        else 'secondary' if motion.status in ['DRAFT', 'PENDING']
-                        else 'danger' if motion.status in ['REJECTED', 'FAILED', 'CLOSED']
-                        else 'info'
-                      %}
-                      <span class="badge text-bg-{{ status_cls }}">
-                        {{ motion.status }}
-                      </span>
-                    </div>
-
-                    <div class="d-flex gap-2">
-                      <button
-                          class="btn btn-outline-primary btn-sm"
-                          data-bs-toggle="modal"
-                          data-bs-target="#statusModal{{ motion.id }}"
-                          title="Update Status">
-                          <i class="bi bi-arrow-repeat"></i>
-                      </button>
-                      <button type="button"
-                              class="btn btn-sm btn-outline-secondary edit-motion-btn"
-                              data-motion-id="{{ motion.id }}"
-                              data-motion-title="{{ motion.title }}"
-                              data-motion-type="{{ motion.type }}"
-                              data-motion-status="{{ motion.status }}"
-                              data-motion-winners="{{ motion.num_winners or '' }}"
-                              data-motion-options="{% for c in motion.options %}{{ c.text }}{{ '\n' if not loop.last }}{% endfor %}"
-                              title="Edit Motion">
-                        <i class="bi bi-pencil"></i>
-                      </button>
-                      <button type="button"
-                              class="btn btn-sm btn-outline-danger delete-motion-btn"
-                              data-motion-id="{{ motion.id }}"
-                              data-motion-title="{{ motion.title }}"
-                              title="Delete Motion">
-                        <i class="bi bi-trash"></i>
-                      </button>
+                      <div class="d-flex gap-2">
+                        <button
+                            class="btn btn-outline-primary btn-sm"
+                            data-bs-toggle="modal"
+                            data-bs-target="#statusModal{{ motion.id }}"
+                            title="Update Status">
+                            <i class="bi bi-arrow-repeat"></i>
+                        </button>
+                        <button type="button"
+                                class="btn btn-sm btn-outline-secondary edit-motion-btn"
+                                data-motion-id="{{ motion.id }}"
+                                data-motion-title="{{ motion.title }}"
+                                data-motion-type="{{ motion.type }}"
+                                data-motion-status="{{ motion.status }}"
+                                data-motion-winners="{{ motion.num_winners or '' }}"
+                                data-motion-options="{% for c in motion.options %}{{ c.text }}{{ '\n' if not loop.last }}{% endfor %}"
+                                title="Edit Motion">
+                          <i class="bi bi-pencil"></i>
+                        </button>
+                        <button type="button"
+                                class="btn btn-sm btn-outline-danger delete-motion-btn"
+                                data-motion-id="{{ motion.id }}"
+                                data-motion-title="{{ motion.title }}"
+                                title="Delete Motion">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -171,27 +176,31 @@
               <div class="list-group list-group-flush">
                 {% for voter in meeting.voters %}
                   <div class="list-group-item px-0 py-3">
-                    <div class="fw-semibold">{{ voter.name }}</div>
-                    <div class="text-muted small mb-2">
-                      Code:
-                      <span class="font-monospace">{{ voter.code }}</span>
-                    </div>
+                    <div class="d-flex align-items-start justify-content-between gap-2">
+                      <div>
+                        <div class="fw-semibold">{{ voter.name }}</div>
+                        <div class="text-muted small">
+                          Code:
+                          <span class="font-monospace">{{ voter.code }}</span>
+                        </div>
+                      </div>
 
-                    <div class="d-flex gap-2">
-                      <button type="button"
-                              class="btn btn-sm btn-outline-secondary edit-voter-btn"
-                              data-voter-id="{{ voter.id }}"
-                              data-voter-name="{{ voter.name }}"
-                              title="Edit Voter">
-                        <i class="bi bi-pencil"></i>
-                      </button>
-                      <button type="button"
-                              class="btn btn-sm btn-outline-danger delete-voter-btn"
-                              data-voter-id="{{ voter.id }}"
-                              data-voter-name="{{ voter.name }}"
-                              title="Delete Voter">
-                        <i class="bi bi-trash"></i>
-                      </button>
+                      <div class="d-flex gap-2 mt-1">
+                        <button type="button"
+                                class="btn btn-sm btn-outline-secondary edit-voter-btn"
+                                data-voter-id="{{ voter.id }}"
+                                data-voter-name="{{ voter.name }}"
+                                title="Edit Voter">
+                          <i class="bi bi-pencil"></i>
+                        </button>
+                        <button type="button"
+                                class="btn btn-sm btn-outline-danger delete-voter-btn"
+                                data-voter-id="{{ voter.id }}"
+                                data-voter-name="{{ voter.name }}"
+                                title="Delete Voter">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 {% endfor %}
