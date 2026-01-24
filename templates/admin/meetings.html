@@ -139,6 +139,25 @@
     </div>
 </div>
 
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered px-3">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="fw-bold text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Are you sure you want to delete <strong id="deleteTargetTitle"></strong>?</p>
+                <p class="small text-muted mt-2">This action will permanently remove all motions, voters, and cast votes. This cannot be undone.</p>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light flex-grow-1 py-2" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="confirmDeleteSubmit" class="btn btn-danger flex-grow-1 py-2 shadow-sm">Delete Meeting</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
     /* Styling for both views */
     .text-truncate-2 {
@@ -169,6 +188,48 @@
             if (match) visibleCount++;
         });
         document.getElementById("noResults").classList.toggle("d-none", visibleCount !== 0);
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const deleteModalEl = document.getElementById('deleteConfirmModal');
+        const deleteModal = new bootstrap.Modal(deleteModalEl);
+        const confirmDeleteBtn = document.getElementById('confirmDeleteSubmit');
+        const deleteTargetTitle = document.getElementById('deleteTargetTitle');
+        
+        let currentDeleteUrl = "";
+        let currentDeleteBtn = null;
+
+        // Triggered when any "Delete" button in the list is clicked
+        document.querySelectorAll(".delete-meeting-btn").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                currentDeleteUrl = btn.dataset.url;
+                currentDeleteBtn = btn;
+                deleteTargetTitle.textContent = btn.dataset.title;
+                deleteModal.show(); // Show the Bootstrap Modal instead of confirm()
+            });
+        });
+
+        // Handle the final confirmation click inside the modal
+        confirmDeleteBtn.addEventListener("click", async () => {
+            confirmDeleteBtn.disabled = true;
+            confirmDeleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Deleting...';
+
+            try {
+                const response = await fetch(currentDeleteUrl, {
+                    method: "POST",
+                    headers: { "X-Requested-With": "XMLHttpRequest" },
+                });
+
+                if (!response.ok) throw new Error("Failed to delete meeting.");
+
+                deleteModal.hide();
+                window.location.reload(); // Refresh the list
+            } catch (err) {
+                alert(err.message);
+                confirmDeleteBtn.disabled = false;
+                confirmDeleteBtn.innerHTML = "Delete Meeting";
+            }
+        });
     });
 
     // Existing Fetch/Delete/Modal logic stays same as app.py uses standard routes
