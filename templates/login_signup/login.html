@@ -3,20 +3,19 @@
 {% block title %}Admin Login - Voting Platform{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center justify-content-center" style="min-height: 70vh;">
-    <div class="card border-0 shadow-lg" style="width: 100%; max-width: 400px; background: rgba(255,255,255,0.9); border-radius: 20px;">
+<div class="d-flex align-items-center justify-content-center login-wrapper">
+    <div class="card border-0 shadow-lg login-card">
         <div class="card-body p-4 p-md-5">
             <div class="text-center mb-4">
-                <div class="vp-brand-badge mx-auto mb-3" style="width: 50px; height: 50px;">
-                    <i class="bi bi-shield-lock-fill fs-4 text-primary"></i>
+                <div class="vp-brand-badge mx-auto mb-3 login-icon-container">
+                    <i class="bi bi-shield-lock-fill text-primary"></i>
                 </div>
-                <h2 class="h4 fw-bold mb-1">Admin Login</h2>
-                <p class="text-muted small">Please enter your credentials</p>
+                <h2 class="h4 fw-bold mb-1 login-title">Admin Login</h2>
+                <p class="text-muted small login-subtitle">Please enter your credentials</p>
             </div>
 
             {% if error %}
-            <div class="alert alert-danger py-2 px-3 border-0 small mb-4 d-flex align-items-center" 
-                style="background-color: rgba(220, 53, 69, 0.1); color: #dc3545; border-radius: 12px;">
+            <div class="alert alert-danger py-2 px-3 border-0 small mb-4 d-flex align-items-center login-alert">
                 <i class="bi bi-exclamation-circle-fill me-2"></i>
                 <div>{{ error }}</div>
             </div>
@@ -24,35 +23,118 @@
 
             <form method="POST" action="{{ url_for('login') }}">
                 <div class="mb-3">
-                    <label for="username" class="form-label small fw-semibold">Username</label>
-                    <div class="input-group">
-                        <input type="text" class="form-control bg-light border-start-0" id="username" name="username" required>
-                    </div>
+                    <label for="username" class="form-label small fw-semibold login-label">Username</label>
+                    <input type="text" class="form-control bg-light border-start-0" id="username" name="username" placeholder="Enter your username" required>
                 </div>
 
                 <div class="mb-3">
                     <div class="d-flex justify-content-between">
-                        <label for="password" class="form-label small fw-semibold">Password</label>
-                        <a href="{{ url_for('forgot_password') }}" class="small text-decoration-none">Forgot Password?</a>
+                        <label for="password" class="form-label small fw-semibold login-label">Password</label>
+                        <a href="{{ url_for('forgot_password') }}" class="small text-decoration-none login-link">Forgot Password?</a>
                     </div>
-                    <input type="password" class="form-control bg-light" id="password" name="password" required>
+                    <input type="password" class="form-control bg-light border-start-0" id="password" name="password" placeholder="Password" required>
                 </div>
 
                 <div class="mb-3 form-check">
                     <input type="checkbox" class="form-check-input" id="remember" name="remember">
-                    <label class="form-check-label small text-muted" for="remember">Remember me</label>
+                    <label class="form-check-label small text-muted login-label" for="remember">Remember me</label>
                 </div>
 
-                <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold shadow-sm mb-3">
+                <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold shadow-sm mb-3 login-btn">
                     Log In
                 </button>
 
                 <div class="text-center">
-                    <span class="text-muted small">Need an account?</span>
-                    <a href="{{ url_for('signup') }}" class="small fw-bold text-decoration-none">Sign Up</a>
+                    <span class="text-muted small login-footer-text">Need an account?</span>
+                    <a href="{{ url_for('signup') }}" class="small fw-bold text-decoration-none login-link">Sign Up</a>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<style>
+  /* Desktop Defaults (Base Styles) */
+  .login-wrapper {
+    min-height: 70vh;
+  }
+  .login-card {
+    width: 100%; 
+    max-width: 400px; 
+    background: rgba(255,255,255,0.9); 
+    border-radius: 20px;
+  }
+  .login-icon-container {
+    width: 50px; 
+    height: 50px; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .login-icon-container i {
+    font-size: 1.5rem;
+  }
+  .login-alert {
+    background-color: rgba(220, 53, 69, 0.1); 
+    color: #dc3545; 
+    border-radius: 12px;
+  }
+
+  .form-control::placeholder {
+    font-size: 0.9rem;
+    opacity:0.7;
+  }
+
+  /* Mobile-specific refinements (< 576px) */
+  @media (max-width: 576px) {
+    .login-wrapper {
+      min-height: 60vh;
+      padding: 0 15px;
+    }
+    .login-card {
+      border-radius: 15px;
+    }
+    /* Shrink the Shield Icon Container from 50px to 40px */
+    .login-icon-container {
+      width: 40px !important;
+      height: 40px !important;
+    }
+    .login-icon-container i {
+      font-size: 1.2rem !important;
+    }
+
+    /* Tighten Typography */
+    .login-title { 
+      font-size: 1.25rem !important; /* Smaller h4 */
+    }
+    .login-subtitle {
+      font-size: 0.8rem !important;
+    }
+
+    /* Refine Form Elements */
+    .login-label {
+      font-size: 0.8rem !important;
+    }
+    .form-control {
+      font-size: 0.9rem !important;
+      padding: 0.5rem 0.75rem !important;
+    }
+
+    /* Compact Button */
+    .login-btn {
+      font-size: 0.95rem !important;
+      padding-top: 0.5rem !important;
+      padding-bottom: 0.5rem !important;
+    }
+
+    .login-footer-text, .login-link {
+      font-size: 0.75rem !important;
+    }
+
+    .form-control::placeholder {
+      font-size: 0.8rem !important;
+      opacity: 0.7;
+    }
+  }
+</style>
 {% endblock %}
