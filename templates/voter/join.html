@@ -2,14 +2,14 @@
 {% block title %}Join Meeting - Voting Platform{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center justify-content-center" style="min-height: 60vh;">
-    <div class="card border-0 shadow-lg" style="width: 100%; max-width: 400px; background: rgba(255,255,255,0.9); border-radius: 20px;">
+<div class="d-flex align-items-center justify-content-center join-wrapper" style="min-height: 60vh;">
+    <div class="card border-0 shadow-lg join-card" style="width: 100%; max-width: 400px; background: rgba(255,255,255,0.9); border-radius: 20px;">
         <div class="card-body p-4 p-md-5 text-center">
-            <div class="vp-brand-badge mx-auto mb-3" style="width: 60px; height: 60px;">
+            <div class="vp-brand-badge mx-auto mb-3 join-icon-container" style="width: 60px; height: 60px;">
                 <i class="bi bi-key-fill fs-3 text-primary"></i>
             </div>
-            <h2 class="h4 fw-bold mb-1">Join Meeting</h2>
-            <p class="text-muted small mb-4">Enter your 8-character private key to vote</p>
+            <h2 class="h4 fw-bold mb-1 join-title">Join Meeting</h2>
+            <p class="text-muted small mb-4 join-subtitle">Enter your 8-character private key to vote</p>
 
             {% with messages = get_flashed_messages(category_filter=["join_error"]) %}
                 {% if messages %}
@@ -25,14 +25,52 @@
 
             <form method="POST">
                 <div class="mb-4">
-                    <input type="text" name="voter_code" class="form-control form-control-lg text-center fw-bold text-uppercase" 
+                    <input type="text" name="voter_code" class="form-control form-control-lg text-center fw-bold text-uppercase join-input" 
                            placeholder="A1B2C3D4" maxlength="8" style="letter-spacing: 2px;" required>
                 </div>
-                <button type="submit" class="btn btn-primary w-100 py-3 fw-bold shadow-sm">
+                <button type="submit" class="btn btn-primary w-100 py-3 fw-bold shadow-sm join-btn">
                     Enter Meeting
                 </button>
             </form>
         </div>
     </div>
 </div>
+
+<style>
+  /* Mobile-specific refinements (< 576px) */
+  @media (max-width: 576px) {
+    .join-wrapper {
+      padding: 0 15px;
+    }
+    .join-card {
+      border-radius: 15px;
+    }
+    .join-icon-container {
+      width: 40px !important;
+      height: 40px !important;
+    }
+    .join-icon-container i {
+      font-size: 1.2rem !important;
+    }
+    .join-title {
+      font-size: 1.25rem !important;
+    }
+    .join-subtitle {
+      font-size: 0.8rem !important;
+    }
+    .join-input {
+      font-size: 0.95rem !important;
+      padding: 0.6rem 0.75rem !important;
+    }
+    .join-btn {
+      font-size: 0.95rem !important;
+      padding-top: 0.6rem !important;
+      padding-bottom: 0.6rem !important;
+    }
+    .join-input::placeholder {
+      font-size: 1rem !important;
+      opacity: 0.7;
+    }
+  }
+</style>
 {% endblock %}
