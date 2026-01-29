@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}Voting Systems Guide{% endblock %}
+
+{% block content %}
+<div class="container py-2" style="max-width: 800px;">
+    <div class="text-center mb-5">
+        <h1 class="text-center mb-2">Understanding Our Voting Systems</h1>
+        <p class="text-muted">A clear guide on how your votes are counted and winners are determined.</p>
+    </div>
+
+    <div class="accordion accordion-flush shadow-sm rounded-4 overflow-hidden" id="votingAccordion">
+        <div class="accordion-item border-bottom">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed fw-bold py-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                    <i class="bi bi-check-lg text-primary me-3"></i> Yes / No / Abstain
+                </button>
+            </h2>
+            <div id="collapseOne" class="accordion-collpase collapse" data-bs-parent="#votingAccordion">
+                <div class="accordion-body bg-light-subtle">
+                    <p class="small text-muted mb-3">Standard binary voting for resolutions and approvals.</p>
+                    <ul class="small ps-3 mb-0">
+                        <li class="mb-2"><b>Yes/No:</b> Direct support or opposition.</li>
+                        <li class="mb-2"><b>Abstain:</b> Records your presence without taking a side.</li>
+                        <li><b>Calculation:</b> Results are calculated as percentages of the total votes cast for each option.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item border-bottom">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed fw-bold py-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
+                    <i class="bi bi-person-badge text-success me-3"></i> Candidate Election
+                </button>
+            </h2>
+            <div id="collapseTwo" class="accordion-collpase collapse" data-bs-parent="#votingAccordion">
+                <div class="accordion-body bg-light-subtle">
+                    <p class="small text-muted mb-3">A "First-Past-The-Post" system used for choosing a single individual from a list.</p>
+                    <ul class="small ps-3 mb-10">
+                        <li class="mb-2"><b>Choice:</b> Voters select exactly one candidate.</li>
+                        <li><b>Winner:</b> The candidate with the highest number of individual votes is elected.</li>
+                    </ul>
+
+                    <div class="p-3 bg-warning-subtle rounded-3 border border-warning-subtle">
+                        <h6 class="fw-bold small mb-2"><i class="bi bi-exclamation-circle me-2"></i>Handling Tie Votes</h6>
+                        <p class="small mb-0">
+                            If multiple candidates receive the exact same highest number of votes, the election is considered a draw. In this event, the <strong>Admin is encouraged to create a new "Candidate Election" motion</strong> consisting only of the tied candidates and run a secondary runoff election to determine a clear winner.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item border-bottom">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed fw-bold py-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree">
+                    <i class="bi bi-list-ol text-info me-3"></i> Preference Voting (Ranked Choice)
+                </button>
+            </h2>
+            <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#votingAccordion">
+                <div class="accordion-body bg-light-subtle">
+                    <p class="small text-muted mb-3">Uses a <strong>Sequential Instant Runoff (IRV)</strong> system to ensure every winner has broad support.</p>
+                    
+                    <h6 class="fw-bold small">The Round-by-Round Process:</h6>
+                    <ol class="small ps-3">
+                        <li class="mb-2"><strong>Initial Count:</strong> The system tallies every voter's #1 preference.</li>
+                        <li class="mb-2"><strong>Majority Check:</strong> If a candidate has more than 50% of the active votes, they are elected.</li>
+                        <li class="mb-2"><strong>Elimination:</strong> If no majority exists, the candidate with the fewest votes is removed. Candidates with zero votes are automatically removed first to streamline the count.</li>
+                        <li class="mb-2"><strong>Redistribution:</strong> Ballots belonging to the eliminated candidate are transferred to the voter's <em>next available</em> preference.</li>
+                    </ol>
+
+                    <h6 class="fw-bold small mt-3">Detailed Tie-Break Logic:</h6>
+                    <p class="small text-muted mb-2">If two or more candidates are tied for last place, the system resolves it in three stages:</p>
+                    <ul class="small ps-3">
+                        <li class="mb-2"><strong>Stage 1 (Restricted Audit):</strong> The system creates a mini-election using only the tied candidates to see who was ranked lower relative to one another.</li>
+                        <li class="mb-2"><strong>Stage 2 (Absolute Audit):</strong> If still tied, the system scans every ballot at each rank level sequentially (starting at 1st choice, then 2nd, then 3rd, etc.). The candidate who has the fewest total votes at the highest possible rank is eliminated. This ensures we exhaust all preference data before moving to a fallback.</li>
+                        <li><strong>Stage 3 (Stable Fallback):</strong> In the rare case of a perfect mathematical tie at all levels, a deterministic rule is applied to ensure a consistent result.</li>
+                    </ul>
+
+                    
+
+                    <h6 class="fw-bold small mt-3">For Multiple Winners:</h6>
+                    <p class="small mb-0">Once a seat is filled, that winner is removed from all ballots. Their original votes are transferred to the next listed preference, and the entire IRV process begins again from Round 1 to fill the next seat.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item border-bottom">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed fw-bold py-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour">
+                    <i class="bi bi-star-fill text-warning me-3"></i> Score Voting (Range Voting)
+                </button>
+            </h2>
+            <div id="collapseFour" class="accordion-collapse collapse" data-bs-parent="#votingAccordion">
+                <div class="accordion-body bg-light-subtle">
+                    <p class="small text-muted mb-3">Voters assign a numerical value to each candidate (e.g., 0–10), allowing for highly expressive preferences.</p>
+                    
+                    <h6 class="fw-bold small">The Process:</h6>
+                    <ul class="small ps-3 mb-3">
+                        <li class="mb-2"><strong>Scoring:</strong> Assign a score to each option; higher numbers indicate stronger support.</li>
+                        <li class="mb-2"><strong>The Tally:</strong> The system calculates the <strong>total score</strong> for each candidate.</li>
+                        <li><strong>Winner:</strong> The candidate with the highest total score is declared the winner.</li>
+                    </ul>
+
+                    <h6 class="fw-bold small mb-2"><i></i>Detailed Tie-Break Logic:</h6>
+                    <p class="small text-muted mb-2">If two or more candidates have the <strong>same total score</strong>, the system performs an individual vote audit:</p>
+                    <ol class="small ps-3 mb-3">
+                        <li class="mb-2"><strong>High-Point Priority:</strong> The system identifies the highest possible score on the scale and compares how many votes each tied candidate received at that specific level.</li>
+                        <li class="mb-2"><strong>Step-Down Comparison:</strong> If the number of votes at the maximum level is equal, the system proceeds to compare counts for the next highest point level (e.g., if the max is 10, it checks 10s, then 9s, then 8s, and so on).</li>
+                        <li><strong>Determination:</strong> The first candidate found to have a higher count of votes at a specific point level wins the tie-break.</li>
+                    </ol>
+
+                    <div class="p-3 bg-warning-subtle rounded-3 border border-warning-subtle">
+                        <h6 class="fw-bold small mb-2"><i class="bi bi-exclamation-triangle-fill me-2"></i>Absolute Deadlock</h6>
+                        <p class="small mb-0">
+                            If candidates have identical scores across all point levels, the <strong>Admin is encouraged to run a new election</strong> (using Candidate Election or Preference Voting) specifically for the remaining tied candidates to ensure a final decision.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item border-bottom">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed fw-bold py-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive">
+                    <i class="bi bi-layers-fill text-danger me-3"></i> Cumulative Voting
+                </button>
+            </h2>
+            <div id="collapseFive" class="accordion-collapse collapse" data-bs-parent="#votingAccordion">
+                <div class="accordion-body bg-light-subtle">
+                    <p class="small text-muted mb-3">Voters are given a fixed "budget" of points (e.g., 10 points) to distribute among candidates however they choose.</p>
+                    
+                    <h6 class="fw-bold small">The Process:</h6>
+                    <ul class="small ps-3 mb-3">
+                        <li class="mb-2"><strong>Point Allocation:</strong> Voters can give all their points to one candidate ("bullet voting") or split them (e.g., 5 to one, 3 to another, 2 to a third).</li>
+                        <li class="mb-2"><strong>The Tally:</strong> The system sums all points received by each candidate across all ballots.</li>
+                        <li><strong>Winners:</strong> The candidates with the highest total point counts are elected, based on the number of seats available.</li>
+                    </ul>
+
+                    <h6 class="fw-bold small mb-2"><i></i>Tie-Break Logic:</h6>
+                    <p class="small text-muted mb-2">In the event of a tie for the final seat, the system follows the same individual vote audit as Score Voting:</p>
+                    <ol class="small ps-3 mb-3">
+                        <li class="mb-2"><strong>High-Point Priority:</strong> The system identifies the maximum points a single voter assigned to a candidate and compares who received more of those high-value "concentrated" votes.</li>
+                        <li><strong>Step-Down Comparison:</strong> If still tied, the system checks lower point values sequentially until the tie is broken.</li>
+                    </ol>
+
+                    <div class="p-3 bg-warning-subtle rounded-3 border border-warning-subtle">
+                        <h6 class="fw-bold small mb-2"><i class="bi bi-exclamation-triangle-fill me-2"></i>Absolute Deadlock</h6>
+                        <p class="small mb-0">
+                            If candidates have identical point distributions, the <strong>Admin is encouraged to run a new election</strong> (using Candidate Election or Preference Voting) for the remaining candidates.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
