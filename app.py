@@ -5,6 +5,14 @@ from sqlalchemy import and_
 import uuid
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+import smtplib
+from email.message import EmailMessage
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
 
 app = Flask(__name__)
 
@@ -15,6 +23,12 @@ db_path = os.path.join(BASE_DIR, "app.db")
 app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://TAMLZ03:20050329@localhost:3306/voting?charset=utf8mb4"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SECRET_KEY"] = "dev-secret-key-change-later"  # needed later for sessions
+app.config["MAIL_SERVER"] = os.getenv("MAIL_SERVER", "smtp.gmail.com")
+app.config["MAIL_PORT"] = int(os.getenv("MAIL_PORT", "587"))
+app.config["MAIL_USE_TLS"] = os.getenv("MAIL_USE_TLS", "true").lower() == "true"
+app.config["MAIL_USERNAME"] = os.getenv("MAIL_USERNAME", "")
+app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD", "")
+app.config["MAIL_DEFAULT_SENDER"] = os.getenv("MAIL_DEFAULT_SENDER", app.config["MAIL_USERNAME"])
 
 db = SQLAlchemy(app)
 
@@ -110,6 +124,39 @@ class Vote(db.Model):
 def generate_voter_code():
     # 8-character uppercase code, e.g. 'A1B2C3D4'
     return uuid.uuid4().hex[:8].upper()
+
+def _reset_serializer():
+    return URLSafeTimedSerializer(app.config["SECRET_KEY"])
+
+def generate_reset_token(email):
+    return _reset_serializer().dumps(email, salt="password-reset")
+
+def verify_reset_token(token, max_age=1800):
+    try:
+        return _reset_serializer().loads(token, salt="password-reset", max_age=max_age)
+    except (BadSignature, SignatureExpired):
+        return None
+
+def send_reset_email(to_email, reset_url):
+    if not app.config["MAIL_USERNAME"] or not app.config["MAIL_PASSWORD"]:
+        raise RuntimeError("Email credentials are not configured.")
+
+    msg = EmailMessage()
+    msg["Subject"] = "Reset your Voting Platform password"
+    msg["From"] = app.config["MAIL_DEFAULT_SENDER"]
+    msg["To"] = to_email
+    msg.set_content(
+        "You requested a password reset for Voting Platform.\n\n"
+        f"Reset your password here: {reset_url}\n\n"
+        "This link will expire in 30 minutes. If you did not request this, ignore this email."
+    )
+
+    with smtplib.SMTP(app.config["MAIL_SERVER"], app.config["MAIL_PORT"]) as server:
+        if app.config["MAIL_USE_TLS"]:
+            server.starttls()
+        server.login(app.config["MAIL_USERNAME"], app.config["MAIL_PASSWORD"])
+        server.send_message(msg)
+        app.logger.info("Password reset email sent to %s", to_email)
 
 def build_ballots_for_motion(motion):
     """
@@ -563,38 +610,60 @@ def login():
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
-        username = request.form.get("username")
-        email = request.form.get("email")
+        email = (request.form.get("email") or "").strip().lower()
+        if not email:
+            flash("Please enter your email address.", "reset_error")
+            return redirect(url_for("forgot_password"))
+
+        user = User.query.filter_by(email=email).first()
+        if user:
+            reset_token = generate_reset_token(user.email)
+            reset_url = url_for("reset_password", token=reset_token, _external=True)
+            try:
+                send_reset_email(user.email, reset_url)
+            except Exception:
+                flash("Email service is not configured. Please contact the administrator.", "reset_error")
+                return redirect(url_for("forgot_password"))
+
+        flash("If an account exists for that email, a reset link has been sent.", "success")
+        return redirect(url_for("login"))
+
+    return render_template("login_signup/forgot_password.html")
+
+@app.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    email = verify_reset_token(token, max_age=1800)
+    if not email:
+        flash("This reset link is invalid or has expired.", "reset_error")
+        return redirect(url_for("forgot_password"))
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        flash("This reset link is invalid or has expired.", "reset_error")
+        return redirect(url_for("forgot_password"))
+
+    if request.method == "POST":
         new_password = request.form.get("password")
         confirm_password = request.form.get("confirm_password")
 
-        # Verify user exists with given username and email
-        user = User.query.filter_by(email=email, username=username).first()
-
-        if not user:
-            flash("No account found with the username and email.", "reset_error")
-            return redirect(url_for("forgot_password"))
-
-        # Validate passwords
         if not new_password or not confirm_password:
             flash("Please provide a new password and confirm it.", "reset_error")
-            return redirect(url_for("forgot_password"))
+            return redirect(url_for("reset_password", token=token))
 
         if new_password != confirm_password:
             flash("Passwords do not match.", "reset_error")
-            return redirect(url_for("forgot_password"))
+            return redirect(url_for("reset_password", token=token))
 
         if len(new_password) < 8:
             flash("Password must be at least 8 characters long.", "reset_error")
-            return redirect(url_for("forgot_password"))
+            return redirect(url_for("reset_password", token=token))
 
-        # Update the user's password
         user.password_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
         db.session.commit()
         flash("Password reset successfully!", "success")
         return redirect(url_for("login"))
-    
-    return render_template("login_signup/forgot_password.html")
+
+    return render_template("login_signup/reset_password.html")
 
 @app.route("/logout")
 @login_required
