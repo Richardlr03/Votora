@@ -624,6 +624,8 @@ def forgot_password():
             except Exception:
                 flash("Email service is not configured. Please contact the administrator.", "reset_error")
                 return redirect(url_for("forgot_password"))
+        else:
+            app.logger.warning("Password reset requested for unknown email: %s", email)
 
         flash("If an account exists for that email, a reset link has been sent.", "success")
         return redirect(url_for("login"))
