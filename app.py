@@ -551,9 +551,6 @@ def tally_preference_sequential_irv(motion):
         "total_ballots": len(ballots),
     }
 
-with app.app_context():
-    db.create_all()
-
 # --- Routes ---
 
 @app.route("/")
