@@ -1,137 +1,342 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="py-4 py-md-5 text-center">
-    <div class="mx-auto mb-3 mb-md-4 vp-hero-logo-wrap">
-        <img class="vp-hero-logo" src="{{ url_for('static', filename='Votora_Logo.png') }}" alt="Votora logo">
+<section class="vp-home py-4 py-lg-5">
+  <div class="vp-home-hero p-4 p-lg-5">
+    <div class="row g-4 g-lg-5 align-items-center">
+      <div class="col-lg-7">
+        <span class="vp-kicker">Professional voting infrastructure</span>
+        <h1 class="vp-title mt-3 mb-3">Run high-trust elections with confidence.</h1>
+        <p class="vp-subtitle mb-4">
+          Votora gives your organization secure ballots, transparent counting, and clean audit trails in one elegant platform.
+        </p>
+
+        <div class="d-grid d-sm-flex gap-2 gap-sm-3 mb-4">
+          {% if current_user.is_authenticated %}
+            <a href="{{ url_for('admin_meetings') }}" class="btn btn-primary btn-lg px-4 vp-cta">
+              <i class="bi bi-speedometer2 me-2"></i>Open Dashboard
+            </a>
+          {% elif session.get('voter_id') %}
+            <a href="{{ url_for('voter_dashboard', code=session.get('voter_code')) }}" class="btn btn-success btn-lg px-4 vp-cta">
+              <i class="bi bi-person-check me-2"></i>Go to My Meeting
+            </a>
+          {% else %}
+            <a href="{{ url_for('signup') }}" class="btn btn-primary btn-lg px-4 vp-cta">Create Admin Account</a>
+            <a href="{{ url_for('join_meeting') }}" class="btn btn-outline-dark btn-lg px-4 vp-cta">Join as Voter</a>
+          {% endif %}
+        </div>
+
+        <div class="vp-trust-strip">
+          <span><i class="bi bi-shield-lock me-2"></i>Secure by design</span>
+          <span><i class="bi bi-graph-up-arrow me-2"></i>Live vote visibility</span>
+          <span><i class="bi bi-journal-check me-2"></i>Audit-ready records</span>
+        </div>
+      </div>
+
+      <div class="col-lg-5">
+        <div class="vp-glass-card p-4">
+          <div class="vp-logo-wrap mb-4">
+            <img class="vp-logo-hero" src="{{ url_for('static', filename='Votora_Logo.png') }}" alt="Votora logo">
+          </div>
+          <div class="row g-3">
+            <div class="col-6">
+              <div class="vp-stat-tile">
+                <small>Result Speed</small>
+                <strong>Real-time</strong>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="vp-stat-tile">
+                <small>Ballot Access</small>
+                <strong>One voter, one vote</strong>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="vp-stat-tile">
+                <small>Uptime</small>
+                <strong>Reliable session flow</strong>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="vp-stat-tile">
+                <small>Workflow</small>
+                <strong>Mobile + desktop</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-3">
+    <div class="col-md-4">
+      <article class="vp-feature-card h-100">
+        <h3>Precision Control</h3>
+        <p>Create meetings, define motions, and manage voters with a clean admin workflow.</p>
+      </article>
+    </div>
+    <div class="col-md-4">
+      <article class="vp-feature-card h-100">
+        <h3>Transparent Outcomes</h3>
+        <p>Deliver clear, understandable results with instant visibility into vote progress.</p>
+      </article>
+    </div>
+    <div class="col-md-4">
+      <article class="vp-feature-card h-100">
+        <h3>Trusted Experience</h3>
+        <p>Simple for voters, robust for administrators, and consistent across all screen sizes.</p>
+      </article>
+    </div>
+  </div>
+
+  <div class="vp-modes mt-4 mt-lg-5">
+    <div class="d-flex flex-column flex-md-row align-items-md-end justify-content-between gap-2 mb-3">
+      <div>
+        <span class="vp-kicker">Voting methods</span>
+        <h2 class="vp-modes-title mt-2 mb-0">All voting modes in Votora</h2>
+      </div>
+      <a class="vp-modes-link" href="{{ url_for('voting_systems') }}">View full rules <i class="bi bi-arrow-right ms-1"></i></a>
     </div>
 
-    <h1 class="fw-bold mb-2 mb-md-3 text-dark responsive-title">Secure Digital Voting</h1>
-    <p class="mx-auto text-muted mb-3 mb-md-4 px-3 px-md-0 responsive-lead">
-        Empower your organization with a reliable, transparent, and easy-to-use platform for elections and motions.
-    </p>
-
-    <div class="d-grid gap-3 d-sm-flex justify-content-sm-center mb-5 px-3">
-        {% if current_user.is_authenticated %}
-            <a href="{{ url_for('admin_meetings') }}" class="btn btn-primary btn-lg px-5 py-3 py-md-4 fw-bold shadow-sm btn-hero">
-                <i class="bi bi-speedometer2 me-2"></i> Go to Dashboard
-            </a>
-
-        {% elif session.get('voter_id') %}
-            <a href="{{ url_for('voter_dashboard', code=session.get('voter_code')) }}" class="btn btn-success btn-lg px-5 py-3 py-md-4 fw-bold shadow-sm btn-hero">
-                <i class="bi bi-person-check me-2"></i> Go to My Meeting
-            </a>
-        
-        {% else %}
-            <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg px-5 py-3 py-md-4 fw-bold shadow-sm btn-hero">
-                Get Started
-            </a>
-            <a href="{{ url_for('signup') }}" class="btn btn-outline-secondary btn-lg px-5 py-3 py-md-4 fw-bold btn-hero">
-                Create Admin Account
-            </a>
-            <a href="{{ url_for('join_meeting') }}" class="btn btn-success btn-lg px-5 py-3 py-md-4 fw-bold shadow-sm btn-hero">
-                <i class="bi bi-person-check me-2"></i> Join as Voter
-            </a>
-        {% endif %}
+    <div class="row g-3">
+      <div class="col-md-6 col-xl-4">
+        <article class="vp-mode-card h-100">
+          <i class="bi bi-check2-square"></i>
+          <h3>Yes / No / Abstain</h3>
+          <p>Simple binary voting for approvals and motions.</p>
+        </article>
+      </div>
+      <div class="col-md-6 col-xl-4">
+        <article class="vp-mode-card h-100">
+          <i class="bi bi-person-badge"></i>
+          <h3>Candidate Election</h3>
+          <p>Single-choice ballot for electing one candidate.</p>
+        </article>
+      </div>
+      <div class="col-md-6 col-xl-4">
+        <article class="vp-mode-card h-100">
+          <i class="bi bi-list-ol"></i>
+          <h3>Preference Voting</h3>
+          <p>Ranked ballots with sequential IRV counting.</p>
+        </article>
+      </div>
+      <div class="col-md-6 col-xl-4">
+        <article class="vp-mode-card h-100">
+          <i class="bi bi-star-fill"></i>
+          <h3>Score Voting</h3>
+          <p>Rate each option and select the top total score.</p>
+        </article>
+      </div>
+      <div class="col-md-6 col-xl-4">
+        <article class="vp-mode-card h-100">
+          <i class="bi bi-layers-fill"></i>
+          <h3>Cumulative Voting</h3>
+          <p>Distribute a fixed point budget across candidates.</p>
+        </article>
+      </div>
     </div>
-
-    <div class="row g-3 g-md-4 mt-4 pt-4 border-top">
-        <div class="col-6 col-md-4">
-            <div class="p-2 p-md-3">
-                <i class="bi bi-lightning-charge text-primary fs-4 fs-md-3 mb-1 d-block"></i>
-                <h3 class="h6 fw-bold mb-1">Instant Results</h3>
-                <p class="x-small text-muted mb-0">Real-time tallying using Preference and IRV systems.</p>
-            </div>
-        </div>
-        <div class="col-6 col-md-4 border-md-start border-md-end">
-            <div class="p-2 p-md-3">
-                <i class="bi bi-lock text-primary fs-4 fs-md-3 mb-1 d-block"></i>
-                <h3 class="h6 fw-bold mb-1">Secure Access</h3>
-                <p class="x-small text-muted mb-0">Unique voter codes ensure one-person, one-vote integrity.</p>
-            </div>
-        </div>
-        <div class="col-12 col-md-4">
-            <div class="p-2 p-md-3">
-                <i class="bi bi-palette text-primary fs-4 fs-md-3 mb-1 d-block"></i>
-                <h3 class="h6 fw-bold mb-1">User Friendly</h3>
-                <p class="x-small text-muted mb-0">Designed for clarity on both desktop and mobile devices.</p>
-            </div>
-        </div>
-    </div>
-</div>
+  </div>
+</section>
 
 <style>
-  /* Desktop Styles */
-    .vp-hero-logo-wrap {
-        width: 136px;
-        height: 136px;
-        display: grid;
-        place-items: center;
-        margin-bottom: 1rem;
-    }
+  .vp-home {
+    animation: vp-rise 0.65s ease both;
+  }
 
-    .vp-hero-logo {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        display: block;
-    }
+  .vp-home-hero {
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 24px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.84)),
+      radial-gradient(circle at 100% 0, rgba(43, 179, 160, 0.18), transparent 40%);
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+    position: relative;
+    overflow: hidden;
+  }
 
-    .responsive-lead {
-        font-size: 1.5rem;
-        line-height: 1.6;
-        font-weight:300;
-    }
+  .vp-home-hero::after {
+    content: "";
+    position: absolute;
+    width: 320px;
+    height: 320px;
+    right: -140px;
+    top: -130px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 106, 61, 0.2), transparent 70%);
+    pointer-events: none;
+  }
 
-    .btn-hero {
-        font-size: 1.2rem !important; /* Forces larger font size on desktop */
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease-in-out;
-    }
+  .vp-kicker {
+    display: inline-block;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #0f172a;
+    background: rgba(15, 23, 42, 0.06);
+  }
 
-    .btn-hero:hover {
-        transform: translateY(-3px); /* Subtle lift effect */
-        box-shadow: 0 8px 15px rgba(0,0,0,0.1) !important;
-    }
+  .vp-title {
+    font-size: clamp(2rem, 4.5vw, 3.6rem);
+    line-height: 1.05;
+    color: #131a2d;
+  }
 
-    .btn-hero i {
-        font-size: 1rem; /* Increases icon size to match text */
-    }
-  
-  /* Mobile Specific Overrides (< 576px) */
+  .vp-subtitle {
+    font-size: clamp(1rem, 1.8vw, 1.3rem);
+    max-width: 56ch;
+    color: rgba(15, 23, 42, 0.72);
+  }
+
+  .vp-cta {
+    font-weight: 600;
+    min-height: 52px;
+    border-radius: 12px;
+  }
+
+  .vp-trust-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .vp-trust-strip span {
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    border-radius: 999px;
+    padding: 0.45rem 0.8rem;
+    color: rgba(15, 23, 42, 0.78);
+    background: rgba(255, 255, 255, 0.66);
+    font-size: 0.9rem;
+  }
+
+  .vp-glass-card {
+    border-radius: 20px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background:
+      linear-gradient(160deg, rgba(255, 255, 255, 0.95), rgba(245, 248, 254, 0.88));
+    box-shadow: 0 14px 36px rgba(15, 23, 42, 0.1);
+    position: relative;
+  }
+
+  .vp-logo-wrap {
+    width: 156px;
+    height: 156px;
+    margin-left: auto;
+    margin-right: auto;
+    display: grid;
+    place-items: center;
+  }
+
+  .vp-logo-hero {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .vp-stat-tile {
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.82);
+    padding: 0.75rem;
+    height: 100%;
+  }
+
+  .vp-stat-tile small {
+    display: block;
+    color: rgba(15, 23, 42, 0.55);
+    font-size: 0.78rem;
+  }
+
+  .vp-stat-tile strong {
+    display: block;
+    margin-top: 0.25rem;
+    line-height: 1.2;
+    color: #111827;
+    font-size: 0.96rem;
+  }
+
+  .vp-feature-card {
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.82);
+    padding: 1.1rem 1rem;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .vp-feature-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
+  }
+
+  .vp-feature-card h3 {
+    font-size: 1.05rem;
+    margin-bottom: 0.45rem;
+    color: #101828;
+  }
+
+  .vp-feature-card p {
+    margin: 0;
+    color: rgba(15, 23, 42, 0.72);
+    font-size: 0.94rem;
+    line-height: 1.55;
+  }
+
+  .vp-modes-title {
+    font-size: clamp(1.45rem, 2.2vw, 2rem);
+    color: #101828;
+  }
+
+  .vp-modes-link {
+    text-decoration: none;
+    color: #0f172a;
+    font-weight: 600;
+  }
+
+  .vp-modes-link:hover {
+    color: #ff6a3d;
+  }
+
+  .vp-mode-card {
+    border: 1px solid rgba(15, 23, 42, 0.09);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.86);
+    padding: 1rem;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
+  }
+
+  .vp-mode-card i {
+    color: #ff6a3d;
+    font-size: 1.05rem;
+  }
+
+  .vp-mode-card h3 {
+    margin: 0.5rem 0 0.4rem;
+    font-size: 1.02rem;
+    color: #111827;
+  }
+
+  .vp-mode-card p {
+    margin: 0;
+    color: rgba(15, 23, 42, 0.72);
+    font-size: 0.92rem;
+    line-height: 1.5;
+  }
+
+  @keyframes vp-rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
   @media (max-width: 576px) {
-    .vp-hero-logo-wrap {
-      width: 96px;
-      height: 96px;
+    .vp-logo-wrap {
+      width: 120px;
+      height: 120px;
     }
-    .responsive-title {
-      font-size: 1.75rem; /* Smaller than display-5 */
-    }
-    .responsive-lead {
-      font-size: 0.95rem;
-    }
-    .x-small {
-      font-size: 0.75rem;
-    }
-    /* Grid adjustments to fit more horizontally */
-    .border-md-start, .border-md-end {
-        border: none !important;
-    }
-
-    .btn-hero {
-      font-size: 1.05rem !important; /* Smaller for mobile */
-      padding: 0.8rem 1.2rem !important; /* Reduced padding for mobile */
-      width: 100%; /* Makes buttons full-width for easy tapping on mobile */
-    }
-    
-    .btn-hero i {
-      font-size: 1.2rem !important;
-    }
-
-    .d-grid.gap-3 {
-        gap: 0.75rem !important; /* Tighter spacing between buttons on mobile */
+    .vp-subtitle {
+      font-size: 1rem;
     }
   }
 </style>
