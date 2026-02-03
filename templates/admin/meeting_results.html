@@ -62,7 +62,7 @@
                 </div>
               </div>
 
-              {% if item.is_preference %}
+              {% if item.result_type == "PREFERENCE" %}
                 {% set pref = item.pref %}
                 <hr class="my-3">
 
@@ -264,7 +264,7 @@
                 </div>
               </div>
 
-              {% if item.is_preference %}
+              {% if item.result_type == "PREFERENCE" %}
                 {% set pref = item.pref %}
 
                 <hr class="my-3">

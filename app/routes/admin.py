@@ -4,7 +4,7 @@ from flask_login import current_user, login_required
 from app.extensions import db
 from app.models import Meeting, Motion, Option, Vote, Voter
 from app.services.security import generate_voter_code
-from app.services.voting import tally_preference_sequential_irv
+from app.services.voting import tally_candidate_election, tally_preference_sequential_irv
 
 
 def register_admin_routes(app):
@@ -219,7 +219,24 @@ def register_admin_routes(app):
         for motion in meeting.motions:
             if motion.type == "PREFERENCE":
                 pref_result = tally_preference_sequential_irv(motion)
-                results.append({"motion": motion, "is_preference": True, "pref": pref_result})
+                results.append(
+                    {
+                        "motion": motion,
+                        "result_type": motion.type,
+                        "pref": pref_result,
+                    }
+                )
+                continue
+
+            if motion.type == "CANDIDATE":
+                candidate_result = tally_candidate_election(motion)
+                results.append(
+                    {
+                        "motion": motion,
+                        "result_type": motion.type,
+                        "candidate": candidate_result,
+                    }
+                )
                 continue
 
             option_counts = {option.id: 0 for option in motion.options}
@@ -239,7 +256,7 @@ def register_admin_routes(app):
             results.append(
                 {
                     "motion": motion,
-                    "is_preference": False,
+                    "result_type": motion.type,
                     "simple": {
                         "total_votes": total_votes,
                         "option_results": option_results,
