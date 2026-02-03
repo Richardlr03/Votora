@@ -2,9 +2,7 @@ def tally_candidate_election(motion):
     options_by_id = {option.id: option for option in motion.options}
     option_counts = {option_id: 0 for option_id in options_by_id}
 
-    for vote in motion.votes:
-        if vote.preference_rank is not None:
-            continue
+    for vote in motion.candidate_votes:
         if vote.option_id in option_counts:
             option_counts[vote.option_id] += 1
 
