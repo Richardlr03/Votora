@@ -1,4 +1,4 @@
-from flask import flash, render_template, request, send_from_directory, session, url_for
+from flask import flash, redirect, render_template, request, send_from_directory, session, url_for
 from sqlalchemy import and_
 
 from app.extensions import db
