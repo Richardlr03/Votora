@@ -38,7 +38,7 @@
 
           {% set type_cls =
             'primary' if motion.type in ['YES_NO']
-            else 'warning' if motion.type in ['CANDIDATE']
+            else 'warning' if motion.type in ['FPTP']
             else 'info'
           %}
 
@@ -177,7 +177,7 @@
                     </div>
                   {% endfor %}
                 </div>
-              {% elif item.result_type == "CANDIDATE" %}
+              {% elif item.result_type == "FPTP" %}
                 {% set candidate = item.candidate %}
                 {% set winner_ids = candidate.winners | map(attribute='id') | list %}
 
@@ -310,7 +310,7 @@
 
           {% set type_cls =
             'primary' if motion.type in ['YES_NO']
-            else 'warning' if motion.type in ['CANDIDATE']
+            else 'warning' if motion.type in ['FPTP']
             else 'info'
           %}
 
@@ -467,7 +467,7 @@
                   {% endfor %}
                 </div>
 
-              {% elif item.result_type == "CANDIDATE" %}
+              {% elif item.result_type == "FPTP" %}
                 {% set candidate = item.candidate %}
                 {% set winner_ids = candidate.winners | map(attribute='id') | list %}
 

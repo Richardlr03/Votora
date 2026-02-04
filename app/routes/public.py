@@ -107,7 +107,7 @@ def register_public_routes(app):
             ]
             for vote in votes_for_motion:
                 preference_ranks[vote.option_id] = vote.preference_rank
-        elif motion.type == "CANDIDATE":
+        elif motion.type == "FPTP":
             simple_vote = next(
                 (vote for vote in voter.candidate_votes if vote.motion_id == motion.id),
                 None,
@@ -158,7 +158,7 @@ def register_public_routes(app):
                         option_id_int = None
 
                     if option_id_int is not None:
-                        vote_model = CandidateVote if motion.type == "CANDIDATE" else YesNoVote
+                        vote_model = CandidateVote if motion.type == "FPTP" else YesNoVote
                         if simple_vote is None:
                             simple_vote = vote_model.query.filter_by(
                                 voter_id=voter.id, motion_id=motion.id

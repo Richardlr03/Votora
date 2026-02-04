@@ -144,7 +144,7 @@ def register_admin_routes(app):
                 flash(error["error"], "error")
                 return redirect(url_for("meeting_detail", meeting_id=meeting.id))
 
-            if motion_type not in ("YES_NO", "CANDIDATE", "PREFERENCE"):
+            if motion_type not in ("YES_NO", "FPTP", "PREFERENCE"):
                 error = {"ok": False, "error": "Invalid motion type."}
                 if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                     return error, 400
@@ -172,7 +172,7 @@ def register_admin_routes(app):
             if motion_type == "YES_NO":
                 for option_text in ("Yes", "No", "Abstain"):
                     db.session.add(Option(motion_id=motion.id, text=option_text))
-            elif motion_type in ("CANDIDATE", "PREFERENCE") and candidate_text:
+            elif motion_type in ("FPTP", "PREFERENCE") and candidate_text:
                 lines = [line.strip() for line in candidate_text.splitlines() if line.strip()]
                 for name in lines:
                     db.session.add(Option(motion_id=motion.id, text=name))
@@ -248,7 +248,7 @@ def register_admin_routes(app):
                 )
                 continue
 
-            if motion.type == "CANDIDATE":
+            if motion.type == "FPTP":
                 candidate_result = tally_candidate_election(motion)
                 results.append(
                     {
@@ -300,7 +300,7 @@ def register_admin_routes(app):
             voter_map = {}
             if motion.type == "PREFERENCE":
                 votes_for_motion = motion.preference_votes
-            elif motion.type == "CANDIDATE":
+            elif motion.type == "FPTP":
                 votes_for_motion = motion.candidate_votes
             else:
                 votes_for_motion = motion.yes_no_votes
@@ -401,7 +401,7 @@ def register_admin_routes(app):
                 return jsonify({"error": "Invalid status value"}), 400
             motion.status = new_status
 
-        if motion.type in ["CANDIDATE", "PREFERENCE"]:
+        if motion.type in ["FPTP", "PREFERENCE"]:
             try:
                 CandidateVote.query.filter_by(motion_id=motion.id).delete(
                     synchronize_session=False
