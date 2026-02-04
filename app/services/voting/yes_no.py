@@ -20,14 +20,18 @@ def tally_yes_no_abstain(motion):
     total_votes = sum(option_counts.values())
     decisive_votes = yes_votes + no_votes
 
+    approved_threshold_pct = motion.approved_threshold_pct
+    if approved_threshold_pct is None:
+        approved_threshold_pct = 50.0
+
+    yes_pct_decisive = (yes_votes / decisive_votes * 100) if decisive_votes > 0 else 0
+
     if decisive_votes == 0:
         decision = "NO_DECISION"
-    elif yes_votes > no_votes:
+    elif yes_pct_decisive >= approved_threshold_pct:
         decision = "PASSED"
-    elif no_votes > yes_votes:
-        decision = "FAILED"
     else:
-        decision = "TIED"
+        decision = "FAILED"
 
     order = {"yes": 0, "no": 1, "abstain": 2}
     option_results = []
@@ -50,6 +54,8 @@ def tally_yes_no_abstain(motion):
         "yes_votes": yes_votes,
         "no_votes": no_votes,
         "abstain_votes": abstain_votes,
+        "yes_pct_decisive": yes_pct_decisive,
+        "approved_threshold_pct": approved_threshold_pct,
         "decision": decision,
         "option_results": option_results,
     }

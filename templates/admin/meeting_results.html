@@ -276,14 +276,27 @@
                   </div>
                 </div>
 
+                <div class="row g-2 mb-3">
+                  <div class="col-6">
+                    <div class="p-2 rounded-3 bg-light border text-center">
+                      <div class="text-muted small">Threshold</div>
+                      <div class="fw-semibold">{{ '%.1f'|format(yn.approved_threshold_pct) }}%</div>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="p-2 rounded-3 bg-light border text-center">
+                      <div class="text-muted small">Yes / (Yes + No)</div>
+                      <div class="fw-semibold">{{ '%.1f'|format(yn.yes_pct_decisive) }}%</div>
+                    </div>
+                  </div>
+                </div>
+
                 <div class="mb-3">
                   <div class="text-muted small mb-1">Decision</div>
                   {% if yn.decision == "PASSED" %}
                     <span class="badge text-bg-success"><i class="bi bi-check-circle me-1"></i>Passed</span>
                   {% elif yn.decision == "FAILED" %}
                     <span class="badge text-bg-danger"><i class="bi bi-x-circle me-1"></i>Failed</span>
-                  {% elif yn.decision == "TIED" %}
-                    <span class="badge text-bg-warning"><i class="bi bi-dash-circle me-1"></i>Tied</span>
                   {% else %}
                     <span class="badge text-bg-secondary"><i class="bi bi-pause-circle me-1"></i>No decision</span>
                   {% endif %}
@@ -647,14 +660,27 @@
                   </div>
                 </div>
 
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6">
+                    <div class="p-3 rounded-3 bg-light border">
+                      <div class="text-muted small">Approval threshold</div>
+                      <div class="fs-5 fw-semibold">{{ '%.1f'|format(yn.approved_threshold_pct) }}%</div>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="p-3 rounded-3 bg-light border">
+                      <div class="text-muted small">Yes share of decisive votes</div>
+                      <div class="fs-5 fw-semibold">{{ '%.1f'|format(yn.yes_pct_decisive) }}%</div>
+                    </div>
+                  </div>
+                </div>
+
                 <div class="mb-3">
                   <div class="text-muted small mb-1">Decision</div>
                   {% if yn.decision == "PASSED" %}
                     <span class="badge text-bg-success"><i class="bi bi-check-circle me-1"></i>Passed</span>
                   {% elif yn.decision == "FAILED" %}
                     <span class="badge text-bg-danger"><i class="bi bi-x-circle me-1"></i>Failed</span>
-                  {% elif yn.decision == "TIED" %}
-                    <span class="badge text-bg-warning"><i class="bi bi-dash-circle me-1"></i>Tied</span>
                   {% else %}
                     <span class="badge text-bg-secondary"><i class="bi bi-pause-circle me-1"></i>No decision</span>
                   {% endif %}

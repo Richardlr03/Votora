@@ -140,6 +140,9 @@ def register_admin_routes(app):
             motion_type = request.form.get("type")
             candidate_text = (request.form.get("candidates") or "").strip()
             num_winners_raw = (request.form.get("num_winners") or "").strip()
+            approved_threshold_raw = (
+                request.form.get("approved_threshold_pct") or ""
+            ).strip()
 
             if not title:
                 error = {"ok": False, "error": "Motion title is required."}
@@ -163,12 +166,25 @@ def register_admin_routes(app):
                 except ValueError:
                     num_winners = 1
 
+            approved_threshold_pct = None
+            if motion_type == "YES_NO":
+                try:
+                    parsed_threshold = (
+                        float(approved_threshold_raw)
+                        if approved_threshold_raw
+                        else 50.0
+                    )
+                    approved_threshold_pct = min(max(parsed_threshold, 0.0), 100.0)
+                except ValueError:
+                    approved_threshold_pct = 50.0
+
             motion = Motion(
                 meeting_id=meeting.id,
                 title=title,
                 type=motion_type,
                 status="DRAFT",
                 num_winners=num_winners,
+                approved_threshold_pct=approved_threshold_pct,
             )
             db.session.add(motion)
             db.session.flush()
@@ -191,6 +207,7 @@ def register_admin_routes(app):
                         "title": motion.title,
                         "type": motion.type,
                         "num_winners": motion.num_winners,
+                        "approved_threshold_pct": motion.approved_threshold_pct,
                     },
                 }
 
@@ -370,7 +387,20 @@ def register_admin_routes(app):
         motion = Motion.query.get_or_404(motion_id)
         motion.title = request.form.get("title")
         motion.type = request.form.get("type")
-        motion.num_winners = request.form.get("num_winners", type=int) or 1
+        motion.num_winners = (
+            request.form.get("num_winners", type=int) or 1
+            if motion.type == "PREFERENCE"
+            else None
+        )
+        threshold_raw = (request.form.get("approved_threshold_pct") or "").strip()
+        if motion.type == "YES_NO":
+            try:
+                parsed_threshold = float(threshold_raw) if threshold_raw else 50.0
+                motion.approved_threshold_pct = min(max(parsed_threshold, 0.0), 100.0)
+            except ValueError:
+                motion.approved_threshold_pct = 50.0
+        else:
+            motion.approved_threshold_pct = None
 
         new_status = request.form.get("status")
         if new_status:

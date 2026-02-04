@@ -115,6 +115,7 @@
                                 data-motion-type="{{ motion.type }}"
                                 data-motion-status="{{ motion.status }}"
                                 data-motion-winners="{{ motion.num_winners or '' }}"
+                                data-motion-threshold="{{ motion.approved_threshold_pct if motion.approved_threshold_pct is not none else '' }}"
                                 data-motion-options="{% for c in motion.options %}{{ c.text }}{{ '\n' if not loop.last }}{% endfor %}"
                                 title="Edit Motion">
                           <i class="bi bi-pencil"></i>
@@ -338,6 +339,7 @@
                                 data-motion-type="{{ motion.type }}"
                                 data-motion-status="{{ motion.status }}"
                                 data-motion-winners="{{ motion.num_winners or '' }}"
+                                data-motion-threshold="{{ motion.approved_threshold_pct if motion.approved_threshold_pct is not none else '' }}"
                                 data-motion-options="{% for c in motion.options %}{{ c.text }}{{ '\n' if not loop.last }}{% endfor %}"
                                 title="Edit Motion">    
                           <i class="bi bi-pencil"></i>
@@ -536,6 +538,24 @@
                 placeholder="e.g. 1 or 2"
               >
             </div>
+
+            <div class="mb-3" id="yesNoThresholdGroup">
+              <label for="motionApprovedThreshold" class="form-label">
+                Approved threshold (%)
+              </label>
+              <input
+                type="number"
+                class="form-control"
+                id="motionApprovedThreshold"
+                name="approved_threshold_pct"
+                min="0"
+                max="100"
+                step="0.1"
+                placeholder="e.g. 50"
+                value="50"
+              >
+              <div class="form-text">Yes must reach this percentage of (Yes + No).</div>
+            </div>
           </div>
 
           <div class="modal-footer bg-light border-0">
@@ -705,6 +725,23 @@
                 name = "num_winners"
                 min="1">
             </div>
+
+            <div class="mb-3" id="editYesNoThresholdGroup">
+              <label for="editMotionThreshold" class="form-label">
+                Approved threshold (%)
+              </label>
+              <input
+                type="number"
+                class="form-control"
+                id="editMotionThreshold"
+                name="approved_threshold_pct"
+                min="0"
+                max="100"
+                step="0.1"
+                placeholder="e.g. 50"
+              >
+              <div class="form-text">Yes must reach this percentage of (Yes + No).</div>
+            </div>
           <div class="modal-footer bg-light border-0">
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
             <button type="submit" class="btn btn-primary" id="editMotionSubmit">Save Changes</button>
@@ -749,6 +786,8 @@
       const motionCandidates = document.getElementById("motionCandidates");
       const numWinnersGroup = document.getElementById("numWinnersGroup");
       const numWinnersInput = document.getElementById("motionNumWinners");
+      const yesNoThresholdGroup = document.getElementById("yesNoThresholdGroup");
+      const yesNoThresholdInput = document.getElementById("motionApprovedThreshold");
 
       function setMotionLoading(isLoading) {
         motionSubmit.disabled = isLoading;
@@ -768,12 +807,20 @@
 
         const needsNumWinners = t === "PREFERENCE";
         numWinnersGroup.style.display = needsNumWinners ? "block" : "none";
+        const needsThreshold = t === "YES_NO";
+        yesNoThresholdGroup.style.display = needsThreshold ? "block" : "none";
+        yesNoThresholdInput.disabled = !needsThreshold;
 
         if (!needsCandidates) {
           document.getElementById("motionCandidates").value = "";
         }
         if (!needsNumWinners) {
           numWinnersInput.value = "";
+        }
+        if (!needsThreshold) {
+          yesNoThresholdInput.value = "";
+        } else if (!yesNoThresholdInput.value) {
+          yesNoThresholdInput.value = "50";
         }
       }
 
@@ -962,6 +1009,8 @@
       const editCandidatesGroup = document.getElementById("editCandidatesGroup");
       const editOptionsText = document.getElementById("editMotionOptions");
       const editWinnersGroup = document.getElementById("editNumWinnersGroup");
+      const editThresholdGroup = document.getElementById("editYesNoThresholdGroup");
+      const editThresholdInput = document.getElementById("editMotionThreshold");
 
       const deleteMotionModal = new bootstrap.Modal(document.getElementById('deleteMotionModal'));
       let currentMotionId = null;
@@ -975,6 +1024,8 @@
         editOptionsText.disabled = !needsCandidates;
         editOptionsText.classList.toggle("bg-light", !needsCandidates);
         editWinnersGroup.style.display = (t === "PREFERENCE") ? "block" : "none";
+        editThresholdGroup.style.display = (t === "YES_NO") ? "block" : "none";
+        editThresholdInput.disabled = t !== "YES_NO";
       }
 
       editTypeSelect.addEventListener("change", updateEditVisibility);
@@ -991,6 +1042,7 @@
             statusSelect.value = btn.dataset.motionStatus;
           }
           document.getElementById('editMotionNumWinners').value = btn.dataset.motionWinners;
+          editThresholdInput.value = btn.dataset.motionThreshold || "50";
           
           updateEditVisibility();
           editMotionModal.show();
