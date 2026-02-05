@@ -178,8 +178,8 @@
                   {% endfor %}
                 </div>
               {% elif item.result_type == "FPTP" %}
-                {% set candidate = item.candidate %}
-                {% set winner_ids = candidate.winners | map(attribute='id') | list %}
+                {% set fptp = item.fptp %}
+                {% set winner_ids = fptp.winners | map(attribute='id') | list %}
 
                 <hr class="my-3">
 
@@ -187,35 +187,35 @@
                   <div class="col-4">
                     <div class="p-2 rounded-3 bg-light border text-center">
                       <div class="text-muted small">Ballots</div>
-                      <div class="fw-semibold">{{ candidate.total_votes }}</div>
+                      <div class="fw-semibold">{{ fptp.total_votes }}</div>
                     </div>
                   </div>
                   <div class="col-4">
                     <div class="p-2 rounded-3 bg-light border text-center">
                       <div class="text-muted small">Candidates</div>
-                      <div class="fw-semibold">{{ candidate.option_results|length }}</div>
+                      <div class="fw-semibold">{{ fptp.option_results|length }}</div>
                     </div>
                   </div>
                   <div class="col-4">
                     <div class="p-2 rounded-3 bg-light border text-center">
                       <div class="text-muted small">Top Votes</div>
-                      <div class="fw-semibold">{{ candidate.top_vote_count }}</div>
+                      <div class="fw-semibold">{{ fptp.top_vote_count }}</div>
                     </div>
                   </div>
                 </div>
 
                 <div class="mb-3">
                   <div class="text-muted small mb-1">Result</div>
-                  {% if candidate.winner %}
+                  {% if fptp.winner %}
                     <span class="badge text-bg-success">
-                      <i class="bi bi-trophy me-1"></i>{{ candidate.winner.text }}
+                      <i class="bi bi-trophy me-1"></i>{{ fptp.winner.text }}
                     </span>
-                  {% elif candidate.is_tie and candidate.winners %}
+                  {% elif fptp.is_tie and fptp.winners %}
                     <div class="small text-warning-emphasis mb-1">
                       <i class="bi bi-exclamation-triangle me-1"></i>Tie for first place
                     </div>
                     <div>
-                      {% for option in candidate.winners %}
+                      {% for option in fptp.winners %}
                         <span class="badge text-bg-warning me-1 mb-1">{{ option.text }}</span>
                       {% endfor %}
                     </div>
@@ -224,10 +224,10 @@
                   {% endif %}
                 </div>
 
-                {% if candidate.option_results %}
+                {% if fptp.option_results %}
                   <div class="vstack gap-2">
-                    {% for row in candidate.option_results %}
-                      {% set is_winner = row.option.id in winner_ids and candidate.top_vote_count > 0 %}
+                    {% for row in fptp.option_results %}
+                      {% set is_winner = row.option.id in winner_ids and fptp.top_vote_count > 0 %}
                       <div class="border rounded-3 p-2 {% if is_winner %}border-success-subtle bg-success-subtle{% endif %}">
                         <div class="d-flex justify-content-between align-items-center gap-2">
                           <div class="fw-semibold">{{ row.option.text }}</div>
@@ -423,7 +423,7 @@
                 <div class="row g-3 mb-3">
                   <div class="col-md-4">
                     <div class="p-3 rounded-3 bg-light border">
-                      <div class="text-muted small">Preference ballots</div>
+                      <div class="text-muted small">Total ballots cast</div>
                       <div class="fs-5 fw-semibold">{{ pref.total_ballots }}</div>
                     </div>
                   </div>
@@ -545,8 +545,8 @@
                 </div>
 
               {% elif item.result_type == "FPTP" %}
-                {% set candidate = item.candidate %}
-                {% set winner_ids = candidate.winners | map(attribute='id') | list %}
+                {% set fptp = item.fptp %}
+                {% set winner_ids = fptp.winners | map(attribute='id') | list %}
 
                 <hr class="my-3">
 
@@ -554,35 +554,35 @@
                   <div class="col-md-4">
                     <div class="p-3 rounded-3 bg-light border">
                       <div class="text-muted small">Total ballots cast</div>
-                      <div class="fs-5 fw-semibold">{{ candidate.total_votes }}</div>
+                      <div class="fs-5 fw-semibold">{{ fptp.total_votes }}</div>
                     </div>
                   </div>
                   <div class="col-md-4">
                     <div class="p-3 rounded-3 bg-light border">
                       <div class="text-muted small">Candidates</div>
-                      <div class="fs-5 fw-semibold">{{ candidate.option_results|length }}</div>
+                      <div class="fs-5 fw-semibold">{{ fptp.option_results|length }}</div>
                     </div>
                   </div>
                   <div class="col-md-4">
                     <div class="p-3 rounded-3 bg-light border">
                       <div class="text-muted small">Top vote count</div>
-                      <div class="fs-5 fw-semibold">{{ candidate.top_vote_count }}</div>
+                      <div class="fs-5 fw-semibold">{{ fptp.top_vote_count }}</div>
                     </div>
                   </div>
                 </div>
 
                 <div class="mb-3">
                   <div class="text-muted small mb-1">Result</div>
-                  {% if candidate.winner %}
+                  {% if fptp.winner %}
                     <span class="badge text-bg-success">
-                      <i class="bi bi-trophy me-1"></i>Winner: {{ candidate.winner.text }}
+                      <i class="bi bi-trophy me-1"></i>Winner: {{ fptp.winner.text }}
                     </span>
-                  {% elif candidate.is_tie and candidate.winners %}
+                  {% elif fptp.is_tie and fptp.winners %}
                     <div class="text-warning-emphasis mb-1">
                       <i class="bi bi-exclamation-triangle me-1"></i>Tie for first place
                     </div>
                     <div>
-                      {% for option in candidate.winners %}
+                      {% for option in fptp.winners %}
                         <span class="badge text-bg-warning me-1 mb-1">{{ option.text }}</span>
                       {% endfor %}
                     </div>
@@ -591,7 +591,7 @@
                   {% endif %}
                 </div>
 
-                {% if candidate.option_results %}
+                {% if fptp.option_results %}
                   <div class="table-responsive">
                     <table class="table table-sm align-middle mb-0">
                       <thead class="table-light">
@@ -602,8 +602,8 @@
                         </tr>
                       </thead>
                       <tbody>
-                        {% for row in candidate.option_results %}
-                          {% set is_winner = row.option.id in winner_ids and candidate.top_vote_count > 0 %}
+                        {% for row in fptp.option_results %}
+                          {% set is_winner = row.option.id in winner_ids and fptp.top_vote_count > 0 %}
                           <tr class="{% if is_winner %}table-success{% endif %}">
                             <td>
                               <span class="fw-semibold">{{ row.option.text }}</span>

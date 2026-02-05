@@ -275,7 +275,7 @@ def register_admin_routes(app):
                     {
                         "motion": motion,
                         "result_type": motion.type,
-                        "candidate": candidate_result,
+                        "fptp": candidate_result,
                     }
                 )
                 continue
