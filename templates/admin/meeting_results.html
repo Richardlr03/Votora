@@ -640,34 +640,25 @@
                 <hr class="my-3">
 
                 <div class="row g-3 mb-3">
-                  <div class="col-md-4">
+                  <div class="col-md-3">
                     <div class="p-3 rounded-3 bg-light border">
                       <div class="text-muted small">Total ballots cast</div>
                       <div class="fs-5 fw-semibold">{{ yn.total_votes }}</div>
                     </div>
                   </div>
-                  <div class="col-md-4">
+                  <div class="col-md-3">
                     <div class="p-3 rounded-3 bg-light border">
                       <div class="text-muted small">Decisive votes (Yes/No)</div>
                       <div class="fs-5 fw-semibold">{{ yn.decisive_votes }}</div>
                     </div>
                   </div>
-                  <div class="col-md-4">
-                    <div class="p-3 rounded-3 bg-light border">
-                      <div class="text-muted small">Abstain votes</div>
-                      <div class="fs-5 fw-semibold">{{ yn.abstain_votes }}</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="row g-3 mb-3">
-                  <div class="col-md-6">
+                  <div class="col-md-3">
                     <div class="p-3 rounded-3 bg-light border">
                       <div class="text-muted small">Approval threshold</div>
                       <div class="fs-5 fw-semibold">{{ '%.1f'|format(yn.approved_threshold_pct) }}%</div>
                     </div>
                   </div>
-                  <div class="col-md-6">
+                  <div class="col-md-3">
                     <div class="p-3 rounded-3 bg-light border">
                       <div class="text-muted small">Yes share of decisive votes</div>
                       <div class="fs-5 fw-semibold">{{ '%.1f'|format(yn.yes_pct_decisive) }}%</div>
