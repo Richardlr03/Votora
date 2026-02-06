@@ -9,3 +9,5 @@ class ScoreVote(db.Model):
     motion_id = db.Column(db.Integer, db.ForeignKey("motions.id"), nullable=False)
     option_id = db.Column(db.Integer, db.ForeignKey("options.id"), nullable=False)
     score = db.Column(db.Float, nullable=False)
+
+    option = db.relationship("Option", backref="score_votes")

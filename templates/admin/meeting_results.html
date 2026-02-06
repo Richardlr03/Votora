@@ -313,7 +313,6 @@
                           <div class="fw-semibold">{{ row.option.text }}</div>
                           <div class="text-end">
                             <div class="small fw-semibold">Total: {{ '%.1f'|format(row.total) }}</div>
-                            <div class="text-muted small">Avg: {{ '%.2f'|format(row.avg) }}</div>
                           </div>
                         </div>
                       </div>
@@ -762,9 +761,7 @@
                       <thead class="table-light">
                         <tr>
                           <th>Candidate</th>
-                          <th style="width: 120px;" class="text-end">Total</th>
-                          <th style="width: 120px;" class="text-end">Average</th>
-                        </tr>
+                          <th style="width: 120px;" class="text-end">Total</th>                        </tr>
                       </thead>
                       <tbody>
                         {% for row in score.results %}
@@ -777,7 +774,6 @@
                               {% endif %}
                             </td>
                             <td class="text-end fw-semibold">{{ '%.1f'|format(row.total) }}</td>
-                            <td class="text-end">{{ '%.2f'|format(row.avg) }}</td>
                           </tr>
                         {% endfor %}
                       </tbody>
