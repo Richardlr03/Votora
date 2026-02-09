@@ -366,6 +366,8 @@ def register_admin_routes(app):
                 votes_for_motion = motion.preference_votes
             elif motion.type == "FPTP":
                 votes_for_motion = motion.candidate_votes
+            elif motion.type == "CUMULATIVE":
+                votes_for_motion = motion.cumulative_votes
             elif motion.type == "SCORE":
                 votes_for_motion = motion.score_votes
             else:
@@ -389,6 +391,10 @@ def register_admin_routes(app):
                     for item in sorted_votes:
                         parts.append(f"{item.preference_rank}: {item.option.text}")
                     choice_display = ", ".join(parts)
+                elif motion.type == "CUMULATIVE":
+                    choice_display = ", ".join(
+                        f"{item.option.text}: {item.points:g}" for item in vote_list
+                    )
                 elif motion.type == "SCORE":
                     choice_display = ", ".join(
                         f"{item.option.text}: {item.score}" for item in vote_list
