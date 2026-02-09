@@ -16,6 +16,7 @@ from app.models import (
 from app.services.security import generate_voter_code
 from app.services.voting import (
     tally_candidate_election,
+    tally_cumulative_votes,
     tally_preference_sequential_irv,
     tally_score_votes,
     tally_yes_no_abstain,
@@ -324,6 +325,17 @@ def register_admin_routes(app):
                         "motion": motion,
                         "result_type": motion.type,
                         "score": score_result,
+                    }
+                )
+                continue
+
+            if motion.type == "CUMULATIVE":
+                cumulative_result = tally_cumulative_votes(motion)
+                results.append(
+                    {
+                        "motion": motion,
+                        "result_type": motion.type,
+                        "cumulative": cumulative_result,
                     }
                 )
                 continue
