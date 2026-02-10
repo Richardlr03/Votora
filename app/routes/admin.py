@@ -1,4 +1,5 @@
 from flask import abort, flash, jsonify, redirect, render_template, request, url_for
+from datetime import datetime
 from flask_login import current_user, login_required
 
 from app.extensions import db
@@ -38,6 +39,30 @@ def register_admin_routes(app):
 
         title = (request.form.get("title") or "").strip()
         description = (request.form.get("description") or "").strip() or None
+        meeting_date_raw = (request.form.get("meeting_date") or "").strip()
+        start_time_raw = (request.form.get("start_time") or "").strip()
+        end_time_raw = (request.form.get("end_time") or "").strip()
+
+        meeting_date = None
+        if meeting_date_raw:
+            try:
+                meeting_date = datetime.strptime(meeting_date_raw, "%Y-%m-%d").date()
+            except ValueError:
+                meeting_date = None
+
+        start_time = None
+        if start_time_raw:
+            try:
+                start_time = datetime.strptime(start_time_raw, "%H:%M").time()
+            except ValueError:
+                start_time = None
+
+        end_time = None
+        if end_time_raw:
+            try:
+                end_time = datetime.strptime(end_time_raw, "%H:%M").time()
+            except ValueError:
+                end_time = None
 
         if not title:
             if request.headers.get("X-Requested-With") == "XMLHttpRequest":
@@ -47,7 +72,12 @@ def register_admin_routes(app):
             return redirect(url_for("admin_meetings"))
 
         new_meeting = Meeting(
-            title=title, description=description, admin_id=current_user.id
+            title=title,
+            description=description,
+            meeting_date=meeting_date,
+            start_time=start_time,
+            end_time=end_time,
+            admin_id=current_user.id,
         )
         db.session.add(new_meeting)
         db.session.commit()
@@ -59,6 +89,21 @@ def register_admin_routes(app):
                     "id": new_meeting.id,
                     "title": new_meeting.title,
                     "description": new_meeting.description,
+                    "meeting_date": (
+                        new_meeting.meeting_date.isoformat()
+                        if new_meeting.meeting_date
+                        else None
+                    ),
+                    "start_time": (
+                        new_meeting.start_time.strftime("%H:%M")
+                        if new_meeting.start_time
+                        else None
+                    ),
+                    "end_time": (
+                        new_meeting.end_time.strftime("%H:%M")
+                        if new_meeting.end_time
+                        else None
+                    ),
                 },
             }
 
@@ -138,12 +183,65 @@ def register_admin_routes(app):
         meeting.title = request.form.get("title", "").strip()
         meeting.description = request.form.get("description", "").strip()
 
+        meeting_date_raw = (request.form.get("meeting_date") or "").strip()
+        start_time_raw = (request.form.get("start_time") or "").strip()
+        end_time_raw = (request.form.get("end_time") or "").strip()
+
+        meeting.meeting_date = None
+        if meeting_date_raw:
+            try:
+                meeting.meeting_date = datetime.strptime(
+                    meeting_date_raw, "%Y-%m-%d"
+                ).date()
+            except ValueError:
+                meeting.meeting_date = None
+
+        meeting.start_time = None
+        if start_time_raw:
+            try:
+                meeting.start_time = datetime.strptime(start_time_raw, "%H:%M").time()
+            except ValueError:
+                meeting.start_time = None
+
+        meeting.end_time = None
+        if end_time_raw:
+            try:
+                meeting.end_time = datetime.strptime(end_time_raw, "%H:%M").time()
+            except ValueError:
+                meeting.end_time = None
+
         if not meeting.title:
             flash("Title is required.", "danger")
             return redirect(url_for("meeting_detail", meeting_id=meeting_id))
 
         db.session.commit()
         flash("Meeting updated successfully.", "success")
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify(
+                {
+                    "ok": True,
+                    "meeting": {
+                        "id": meeting.id,
+                        "title": meeting.title,
+                        "description": meeting.description,
+                        "meeting_date": (
+                            meeting.meeting_date.isoformat()
+                            if meeting.meeting_date
+                            else None
+                        ),
+                        "start_time": (
+                            meeting.start_time.strftime("%H:%M")
+                            if meeting.start_time
+                            else None
+                        ),
+                        "end_time": (
+                            meeting.end_time.strftime("%H:%M")
+                            if meeting.end_time
+                            else None
+                        ),
+                    },
+                }
+            )
         return redirect(url_for("meeting_detail", meeting_id=meeting_id))
 
     @app.route("/admin/meetings/<int:meeting_id>/motions/new", methods=["GET", "POST"])
