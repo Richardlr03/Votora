@@ -107,6 +107,7 @@ def register_admin_routes(app):
                 },
             }
 
+        flash("Meeting created successfully.", "success")
         return redirect(url_for("admin_meetings"))
 
     @app.route("/admin/meetings/<int:meeting_id>")
@@ -170,7 +171,7 @@ def register_admin_routes(app):
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return {"ok": True}
 
-        flash("Meeting deleted.", "success")
+        flash("Meeting deleted successfully.", "success")
         return redirect(url_for("admin_meetings"))
 
     @app.route("/admin/meetings/<int:meeting_id>/update", methods=["POST"])

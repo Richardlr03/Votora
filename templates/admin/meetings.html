@@ -40,8 +40,18 @@
                                     {{ m.title }}
                                 </a>
                             </h3>
-                            <p class="text-muted x-small mb-3 text-truncate-2">
-                                {{ m.description or "—" }}
+                            <p class="text-muted x-small mb-3">
+                                {% if m.meeting_date %}
+                                    {{ m.meeting_date.strftime("%d/%m/%Y") }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                                {% if m.start_time or m.end_time %}
+                                    <span class="mx-1">•</span>
+                                    {{ m.start_time.strftime("%H:%M") if m.start_time else "--:--" }}
+                                    -
+                                    {{ m.end_time.strftime("%H:%M") if m.end_time else "--:--" }}
+                                {% endif %}
                             </p>
                             <div class="d-flex gap-2">
                                 <a href="{{ url_for('meeting_detail', meeting_id=m.id) }}" class="btn btn-sm btn-outline-primary flex-grow-1 fw-bold">Manage</a>
@@ -71,50 +81,89 @@
             <div class="d-none d-md-block card shadow-sm border-0 rounded-4 overflow-hidden">
                 <div class="table-responsive">
                     <table class="table align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="ps-4">Title</th>
-                                <th>Description</th>
-                                <th class="text-end pe-4">
-                                  <span style="display: inline-block; transform: translateX(-30px);">
-                                    Actions
-                                  </span>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody id="meetingTableBody">
-                            {% for m in meetings %}
-                            <tr class="meeting-row" data-searchable="{{ m.title }} {{ m.description }}">
-                                <td class="ps-4 fw-semibold">
-                                    <a class="text-decoration-none" href="{{ url_for('meeting_detail', meeting_id=m.id) }}">
-                                        {{ m.title }}
-                                    </a>
-                                </td>
-                                <td class="text-muted small">{{ m.description or "—" }}</td>
-                                <td class="text-end pe-4">
-                                    <div class="d-flex justify-content-end gap-2">
-                                        <a href="{{ url_for('meeting_detail', meeting_id=m.id) }}" class="btn btn-sm btn-outline-primary">View</a>
-                                        <button class="btn btn-sm btn-outline-secondary edit-meeting-btn"
-                                                data-id="{{ m.id }}"
-                                                data-title="{{ m.title }}"
-                                                data-description="{{ m.description or '' }}"
-                                                data-meeting-date="{{ m.meeting_date or '' }}"
-                                                data-start-time="{{ m.start_time or '' }}"
-                                                data-end-time="{{ m.end_time or '' }}"
-                                                data-url="{{ url_for('update_meeting', meeting_id=m.id) }}">
-                                            Edit
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-danger delete-meeting-btn" 
-                                                data-id="{{ m.id }}" data-title="{{ m.title }}" 
-                                                data-url="{{ url_for('delete_meeting', meeting_id=m.id) }}">Delete</button>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
+                    <thead class="table-light">
+                        <tr>
+                        <th class="ps-4">Meeting</th>
+                        <th style="width: 160px;">Date</th>
+                        <th style="width: 170px;">Time</th>
+                        <th class="text-end pe-4" style="width: 240px;">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="meetingTableBody">
+                        {% for m in meetings %}
+                        <tr class="meeting-row" data-searchable="{{ m.title }} {{ m.description }}">
+                        <!-- Meeting (Title + Description) -->
+                        <td class="ps-4">
+                            <div class="fw-semibold">
+                            <a class="text-decoration-none link-primary"
+                                href="{{ url_for('meeting_detail', meeting_id=m.id) }}">
+                                {{ m.title }}
+                            </a>
+                            </div>
+                            {% if m.description %}
+                            <div class="text-muted small text-truncate-2">
+                                {{ m.description }}
+                            </div>
+                            {% else %}
+                            <div class="text-muted small">—</div>
+                            {% endif %}
+                        </td>
+
+                        <!-- Date -->
+                        <td class="text-muted small">
+                            {% if m.meeting_date %}
+                            {{ m.meeting_date.strftime("%d %b %Y") }}
+                            {% else %}
+                            —
+                            {% endif %}
+                        </td>
+
+                        <!-- Time -->
+                        <td class="text-muted small">
+                            {% if m.start_time or m.end_time %}
+                            {{ m.start_time.strftime("%H:%M") if m.start_time else "--:--" }}
+                            <span class="mx-1">–</span>
+                            {{ m.end_time.strftime("%H:%M") if m.end_time else "--:--" }}
+                            {% else %}
+                            —
+                            {% endif %}
+                        </td>
+
+                        <!-- Actions -->
+                        <td class="text-end pe-4">
+                            <div class="d-flex justify-content-end gap-2">
+                            <a href="{{ url_for('meeting_detail', meeting_id=m.id) }}"
+                                class="btn btn-sm btn-outline-primary">
+                                Manage
+                            </a>
+
+                            <button class="btn btn-sm btn-outline-secondary edit-meeting-btn"
+                                    data-id="{{ m.id }}"
+                                    data-title="{{ m.title }}"
+                                    data-description="{{ m.description or '' }}"
+                                    data-meeting-date="{{ m.meeting_date or '' }}"
+                                    data-start-time="{{ m.start_time or '' }}"
+                                    data-end-time="{{ m.end_time or '' }}"
+                                    data-url="{{ url_for('update_meeting', meeting_id=m.id) }}">
+                                Edit
+                            </button>
+
+                            <button class="btn btn-sm btn-outline-danger delete-meeting-btn"
+                                    data-id="{{ m.id }}"
+                                    data-title="{{ m.title }}"
+                                    data-url="{{ url_for('delete_meeting', meeting_id=m.id) }}">
+                                Delete
+                            </button>
+                            </div>
+                        </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
                     </table>
                 </div>
             </div>
+
 
             <div id="noResults" class="text-center py-5 d-none">
                 <i class="bi bi-search fs-1 text-muted mb-2 d-block"></i>
@@ -300,6 +349,12 @@
                 if (!response.ok) throw new Error("Failed to delete meeting.");
 
                 deleteModal.hide();
+                try {
+                    sessionStorage.setItem("vpFlash", JSON.stringify({
+                        type: "success",
+                        message: "Meeting deleted successfully."
+                    }));
+                } catch (e) { /* ignore */ }
                 window.location.reload(); // Refresh the list
             } catch (err) {
                 alert(err.message);
