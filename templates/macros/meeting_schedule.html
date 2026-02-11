@@ -1,0 +1,17 @@
+{% macro meeting_date_text(meeting, date_format="%d/%m/%Y", missing_text="Date not set") -%}
+  {{ meeting.meeting_date.strftime(date_format) if meeting.meeting_date else missing_text }}
+{%- endmacro %}
+
+{% macro meeting_time_range_text(meeting, missing_time="--:--") -%}
+  {{ meeting.start_time.strftime("%H:%M") if meeting.start_time else missing_time }}
+  -
+  {{ meeting.end_time.strftime("%H:%M") if meeting.end_time else missing_time }}
+{%- endmacro %}
+
+{% macro meeting_schedule_line(meeting, date_format="%d/%m/%Y", missing_date="Date not set", missing_time="--:--") -%}
+  <i class="bi bi-calendar-event me-1"></i>
+  {{ meeting_date_text(meeting, date_format, missing_date) }}
+  <span class="mx-1">|</span>
+  <i class="bi bi-clock me-1"></i>
+  {{ meeting_time_range_text(meeting, missing_time) }}
+{%- endmacro %}

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros/meeting_schedule.html" import meeting_date_text, meeting_time_range_text %}
 
 {% block content %}
 <div class="container py-2">
@@ -42,15 +43,13 @@
                             </h3>
                             <p class="text-muted x-small mb-3">
                                 {% if m.meeting_date %}
-                                    {{ m.meeting_date.strftime("%d/%m/%Y") }}
+                                    {{ meeting_date_text(m, "%d/%m/%Y") }}
                                 {% else %}
                                     —
                                 {% endif %}
                                 {% if m.start_time or m.end_time %}
                                     <span class="mx-1">•</span>
-                                    {{ m.start_time.strftime("%H:%M") if m.start_time else "--:--" }}
-                                    -
-                                    {{ m.end_time.strftime("%H:%M") if m.end_time else "--:--" }}
+                                    {{ meeting_time_range_text(m, "--:--") }}
                                 {% endif %}
                             </p>
                             <div class="d-flex gap-2">
@@ -113,7 +112,7 @@
                         <!-- Date -->
                         <td class="text-muted small">
                             {% if m.meeting_date %}
-                            {{ m.meeting_date.strftime("%d %b %Y") }}
+                            {{ meeting_date_text(m, "%d %b %Y") }}
                             {% else %}
                             —
                             {% endif %}
@@ -122,9 +121,7 @@
                         <!-- Time -->
                         <td class="text-muted small">
                             {% if m.start_time or m.end_time %}
-                            {{ m.start_time.strftime("%H:%M") if m.start_time else "--:--" }}
-                            <span class="mx-1">–</span>
-                            {{ m.end_time.strftime("%H:%M") if m.end_time else "--:--" }}
+                            {{ meeting_time_range_text(m, "--:--") }}
                             {% else %}
                             —
                             {% endif %}
@@ -414,3 +411,4 @@
     // Existing Fetch/Delete/Modal logic stays same as app.py uses standard routes
 </script>
 {% endblock %}
+
