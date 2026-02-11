@@ -404,6 +404,9 @@
             } catch (err) {
                 editMeetingError.textContent = err.message;
                 editMeetingError.classList.remove("d-none");
+                if (typeof showFlashModal === "function") {
+                    showFlashModal("danger", err.message);
+                }
             }
         });
     });

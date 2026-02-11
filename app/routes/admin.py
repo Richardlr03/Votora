@@ -35,6 +35,52 @@ def register_admin_routes(app):
                 continue
         return None
 
+    def parse_date_value(raw_value):
+        if not raw_value:
+            return None
+        try:
+            return datetime.strptime(raw_value, "%Y-%m-%d").date()
+        except ValueError:
+            return None
+
+    def validate_meeting_schedule(meeting_date_raw, start_time_raw, end_time_raw):
+        meeting_date = parse_date_value(meeting_date_raw)
+        start_time = parse_time_value(start_time_raw)
+        end_time = parse_time_value(end_time_raw)
+
+        if meeting_date_raw and meeting_date is None:
+            return meeting_date, start_time, end_time, "Invalid meeting date format."
+        if start_time_raw and start_time is None:
+            return meeting_date, start_time, end_time, "Invalid start time format."
+        if end_time_raw and end_time is None:
+            return meeting_date, start_time, end_time, "Invalid end time format."
+
+        if bool(start_time_raw) != bool(end_time_raw):
+            return (
+                meeting_date,
+                start_time,
+                end_time,
+                "Start time and end time must both be provided.",
+            )
+
+        if (start_time_raw or end_time_raw) and not meeting_date_raw:
+            return (
+                meeting_date,
+                start_time,
+                end_time,
+                "Meeting date is required when start/end time is set.",
+            )
+
+        if start_time and end_time and end_time <= start_time:
+            return (
+                meeting_date,
+                start_time,
+                end_time,
+                "End time must be later than start time.",
+            )
+
+        return meeting_date, start_time, end_time, None
+
     @app.route("/admin/meetings")
     @login_required
     def admin_meetings():
@@ -62,21 +108,23 @@ def register_admin_routes(app):
         start_time_raw = (request.form.get("start_time") or "").strip()
         end_time_raw = (request.form.get("end_time") or "").strip()
 
-        meeting_date = None
-        if meeting_date_raw:
-            try:
-                meeting_date = datetime.strptime(meeting_date_raw, "%Y-%m-%d").date()
-            except ValueError:
-                meeting_date = None
-
-        start_time = parse_time_value(start_time_raw)
-        end_time = parse_time_value(end_time_raw)
+        meeting_date, start_time, end_time, schedule_error = validate_meeting_schedule(
+            meeting_date_raw, start_time_raw, end_time_raw
+        )
 
         if not title:
+            error_message = "Meeting title is required."
             if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                return {"ok": False, "error": "Title is required."}, 400
+                return {"ok": False, "error": error_message}, 400
 
-            flash("Meeting title is required.", "error")
+            flash(error_message, "danger")
+            return redirect(url_for("admin_meetings"))
+
+        if schedule_error:
+            error_message = schedule_error
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return {"ok": False, "error": error_message}, 400
+            flash(error_message, "danger")
             return redirect(url_for("admin_meetings"))
 
         new_meeting = Meeting(
@@ -189,28 +237,36 @@ def register_admin_routes(app):
         if meeting.admin_id != current_user.id:
             abort(403)
 
-        meeting.title = request.form.get("title", "").strip()
-        meeting.description = request.form.get("description", "").strip()
+        title = request.form.get("title", "").strip()
+        description = request.form.get("description", "").strip()
 
         meeting_date_raw = (request.form.get("meeting_date") or "").strip()
         start_time_raw = (request.form.get("start_time") or "").strip()
         end_time_raw = (request.form.get("end_time") or "").strip()
 
-        meeting.meeting_date = None
-        if meeting_date_raw:
-            try:
-                meeting.meeting_date = datetime.strptime(
-                    meeting_date_raw, "%Y-%m-%d"
-                ).date()
-            except ValueError:
-                meeting.meeting_date = None
+        meeting_date, start_time, end_time, schedule_error = validate_meeting_schedule(
+            meeting_date_raw, start_time_raw, end_time_raw
+        )
 
-        meeting.start_time = parse_time_value(start_time_raw)
-        meeting.end_time = parse_time_value(end_time_raw)
+        if not title:
+            error_message = "Title is required."
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify({"ok": False, "error": error_message}), 400
+            flash(error_message, "danger")
+            return redirect(url_for("admin_meetings"))
 
-        if not meeting.title:
-            flash("Title is required.", "danger")
-            return redirect(url_for("meeting_detail", meeting_id=meeting_id))
+        if schedule_error:
+            error_message = schedule_error
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify({"ok": False, "error": error_message}), 400
+            flash(error_message, "danger")
+            return redirect(url_for("admin_meetings"))
+
+        meeting.title = title
+        meeting.description = description
+        meeting.meeting_date = meeting_date
+        meeting.start_time = start_time
+        meeting.end_time = end_time
 
         db.session.commit()
         flash("Meeting updated successfully.", "success")

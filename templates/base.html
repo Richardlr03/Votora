@@ -293,7 +293,7 @@
                 {% endif %}
               </div>
               <div class="vp-flash-title text-{{ bs }}">
-                {% if bs == 'danger' %}FAILED{% else %}{{ bs|upper }}{% endif %}
+                {% if bs == 'danger' %}Failed{% else %}{{ bs|upper }}{% endif %}
               </div>
               <div class="vp-flash-message">{{ message }}</div>
               <button class="btn btn-primary px-4" id="flashOkBtn">OK</button>
@@ -337,10 +337,11 @@
               ? '<i class="bi bi-exclamation-triangle-fill"></i>'
               : '<i class="bi bi-info-circle-fill"></i>';
 
+        const titleText = bs === "danger" ? "Failed" : bs.toUpperCase();
         backdrop.innerHTML = `
           <div class="vp-flash-modal">
             <div class="vp-flash-icon vp-${bs}">${iconHtml}</div>
-            <div class="vp-flash-title text-${bs}">${bs.toUpperCase()}</div>
+            <div class="vp-flash-title text-${bs}">${titleText}</div>
             <div class="vp-flash-message">${message || ""}</div>
             <button class="btn btn-primary px-4" id="flashOkBtn">OK</button>
           </div>
