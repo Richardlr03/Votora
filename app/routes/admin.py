@@ -81,6 +81,10 @@ def register_admin_routes(app):
 
         return meeting_date, start_time, end_time, None
 
+    def ensure_meeting_owner(meeting):
+        if meeting.admin_id != current_user.id:
+            abort(403)
+
     @app.route("/admin/meetings")
     @login_required
     def admin_meetings():
@@ -170,12 +174,14 @@ def register_admin_routes(app):
     @login_required
     def meeting_detail(meeting_id):
         meeting = Meeting.query.get_or_404(meeting_id)
+        ensure_meeting_owner(meeting)
         return render_template("admin/meeting_detail.html", meeting=meeting)
 
     @app.route("/admin/meetings/<int:meeting_id>/delete", methods=["POST"])
     @login_required
     def delete_meeting(meeting_id):
         meeting = Meeting.query.get_or_404(meeting_id)
+        ensure_meeting_owner(meeting)
 
         motion_ids = [motion.id for motion in meeting.motions]
         voter_ids = [voter.id for voter in meeting.voters]
@@ -302,6 +308,7 @@ def register_admin_routes(app):
     @login_required
     def create_motion(meeting_id):
         meeting = Meeting.query.get_or_404(meeting_id)
+        ensure_meeting_owner(meeting)
 
         if request.method == "POST":
             title = (request.form.get("title") or "").strip()
@@ -411,6 +418,7 @@ def register_admin_routes(app):
     @login_required
     def create_voter(meeting_id):
         meeting = Meeting.query.get_or_404(meeting_id)
+        ensure_meeting_owner(meeting)
 
         if request.method == "POST":
             name = (request.form.get("name") or "").strip()
@@ -445,6 +453,7 @@ def register_admin_routes(app):
     @login_required
     def meeting_results(meeting_id):
         meeting = Meeting.query.get_or_404(meeting_id)
+        ensure_meeting_owner(meeting)
         results = []
 
         for motion in meeting.motions:
@@ -510,6 +519,7 @@ def register_admin_routes(app):
     @login_required
     def meeting_votes(meeting_id):
         meeting = Meeting.query.get_or_404(meeting_id)
+        ensure_meeting_owner(meeting)
         motions_detail = []
 
         for motion in meeting.motions:
