@@ -1,11 +1,15 @@
 from pathlib import Path
 import sys
+import os
 
 import pytest
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
+
+# Safety default for any module-level app creation during test imports.
+os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 
 from app import create_app
 from app.extensions import db
@@ -15,15 +19,21 @@ from app.models import User
 @pytest.fixture()
 def app(tmp_path: Path):
     db_file = tmp_path / "test.sqlite3"
-    app = create_app()
-    app.config.update(
-        TESTING=True,
-        SQLALCHEMY_DATABASE_URI=f"sqlite:///{db_file}",
-        SQLALCHEMY_ENGINE_OPTIONS={},
-        WTF_CSRF_ENABLED=False,
+    app = create_app(
+        {
+            "TESTING": True,
+            "SQLALCHEMY_DATABASE_URI": f"sqlite:///{db_file}",
+            "SQLALCHEMY_ENGINE_OPTIONS": {},
+            "WTF_CSRF_ENABLED": False,
+        }
     )
 
     with app.app_context():
+        driver = db.engine.url.drivername
+        if driver != "sqlite":
+            raise RuntimeError(
+                f"Test database must be SQLite, got '{driver}'. Refusing to run destructive test setup."
+            )
         db.drop_all()
         db.create_all()
         yield app
