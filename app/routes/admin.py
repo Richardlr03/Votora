@@ -1,4 +1,5 @@
 from flask import abort, flash, jsonify, redirect, render_template, request, url_for
+from datetime import date, datetime, time
 from flask_login import current_user, login_required
 
 from app.extensions import db
@@ -24,10 +25,79 @@ from app.services.voting import (
 
 
 def register_admin_routes(app):
+    def parse_time_value(raw_value):
+        if not raw_value:
+            return None
+        for fmt in ("%H:%M", "%H:%M:%S"):
+            try:
+                return datetime.strptime(raw_value, fmt).time()
+            except ValueError:
+                continue
+        return None
+
+    def parse_date_value(raw_value):
+        if not raw_value:
+            return None
+        try:
+            return datetime.strptime(raw_value, "%Y-%m-%d").date()
+        except ValueError:
+            return None
+
+    def validate_meeting_schedule(meeting_date_raw, start_time_raw, end_time_raw):
+        meeting_date = parse_date_value(meeting_date_raw)
+        start_time = parse_time_value(start_time_raw)
+        end_time = parse_time_value(end_time_raw)
+
+        if meeting_date_raw and meeting_date is None:
+            return meeting_date, start_time, end_time, "Invalid meeting date format."
+        if start_time_raw and start_time is None:
+            return meeting_date, start_time, end_time, "Invalid start time format."
+        if end_time_raw and end_time is None:
+            return meeting_date, start_time, end_time, "Invalid end time format."
+
+        if bool(start_time_raw) != bool(end_time_raw):
+            return (
+                meeting_date,
+                start_time,
+                end_time,
+                "Start time and end time must both be provided.",
+            )
+
+        if (start_time_raw or end_time_raw) and not meeting_date_raw:
+            return (
+                meeting_date,
+                start_time,
+                end_time,
+                "Meeting date is required when start/end time is set.",
+            )
+
+        if start_time and end_time and end_time <= start_time:
+            return (
+                meeting_date,
+                start_time,
+                end_time,
+                "End time must be later than start time.",
+            )
+
+        return meeting_date, start_time, end_time, None
+
+    def ensure_meeting_owner(meeting):
+        if meeting.admin_id != current_user.id:
+            abort(403)
+
     @app.route("/admin/meetings")
     @login_required
     def admin_meetings():
         meetings = Meeting.query.filter_by(admin_id=current_user.id).all()
+        meetings.sort(
+            key=lambda meeting: (
+                meeting.meeting_date is None,
+                meeting.meeting_date or date.max,
+                meeting.start_time is None,
+                meeting.start_time or time.max,
+                meeting.id,
+            )
+        )
         return render_template("admin/meetings.html", meetings=meetings)
 
     @app.route("/admin/meetings/new", methods=["GET", "POST"])
@@ -38,16 +108,36 @@ def register_admin_routes(app):
 
         title = (request.form.get("title") or "").strip()
         description = (request.form.get("description") or "").strip() or None
+        meeting_date_raw = (request.form.get("meeting_date") or "").strip()
+        start_time_raw = (request.form.get("start_time") or "").strip()
+        end_time_raw = (request.form.get("end_time") or "").strip()
+
+        meeting_date, start_time, end_time, schedule_error = validate_meeting_schedule(
+            meeting_date_raw, start_time_raw, end_time_raw
+        )
 
         if not title:
+            error_message = "Meeting title is required."
             if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                return {"ok": False, "error": "Title is required."}, 400
+                return {"ok": False, "error": error_message}, 400
 
-            flash("Meeting title is required.", "error")
+            flash(error_message, "danger")
+            return redirect(url_for("admin_meetings"))
+
+        if schedule_error:
+            error_message = schedule_error
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return {"ok": False, "error": error_message}, 400
+            flash(error_message, "danger")
             return redirect(url_for("admin_meetings"))
 
         new_meeting = Meeting(
-            title=title, description=description, admin_id=current_user.id
+            title=title,
+            description=description,
+            meeting_date=meeting_date,
+            start_time=start_time,
+            end_time=end_time,
+            admin_id=current_user.id,
         )
         db.session.add(new_meeting)
         db.session.commit()
@@ -59,21 +149,39 @@ def register_admin_routes(app):
                     "id": new_meeting.id,
                     "title": new_meeting.title,
                     "description": new_meeting.description,
+                    "meeting_date": (
+                        new_meeting.meeting_date.isoformat()
+                        if new_meeting.meeting_date
+                        else None
+                    ),
+                    "start_time": (
+                        new_meeting.start_time.strftime("%H:%M")
+                        if new_meeting.start_time
+                        else None
+                    ),
+                    "end_time": (
+                        new_meeting.end_time.strftime("%H:%M")
+                        if new_meeting.end_time
+                        else None
+                    ),
                 },
             }
 
+        flash("Meeting created successfully.", "success")
         return redirect(url_for("admin_meetings"))
 
     @app.route("/admin/meetings/<int:meeting_id>")
     @login_required
     def meeting_detail(meeting_id):
         meeting = Meeting.query.get_or_404(meeting_id)
+        ensure_meeting_owner(meeting)
         return render_template("admin/meeting_detail.html", meeting=meeting)
 
     @app.route("/admin/meetings/<int:meeting_id>/delete", methods=["POST"])
     @login_required
     def delete_meeting(meeting_id):
         meeting = Meeting.query.get_or_404(meeting_id)
+        ensure_meeting_owner(meeting)
 
         motion_ids = [motion.id for motion in meeting.motions]
         voter_ids = [voter.id for voter in meeting.voters]
@@ -125,7 +233,7 @@ def register_admin_routes(app):
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return {"ok": True}
 
-        flash("Meeting deleted.", "success")
+        flash("Meeting deleted successfully.", "success")
         return redirect(url_for("admin_meetings"))
 
     @app.route("/admin/meetings/<int:meeting_id>/update", methods=["POST"])
@@ -135,21 +243,72 @@ def register_admin_routes(app):
         if meeting.admin_id != current_user.id:
             abort(403)
 
-        meeting.title = request.form.get("title", "").strip()
-        meeting.description = request.form.get("description", "").strip()
+        title = request.form.get("title", "").strip()
+        description = request.form.get("description", "").strip()
 
-        if not meeting.title:
-            flash("Title is required.", "danger")
-            return redirect(url_for("meeting_detail", meeting_id=meeting_id))
+        meeting_date_raw = (request.form.get("meeting_date") or "").strip()
+        start_time_raw = (request.form.get("start_time") or "").strip()
+        end_time_raw = (request.form.get("end_time") or "").strip()
+
+        meeting_date, start_time, end_time, schedule_error = validate_meeting_schedule(
+            meeting_date_raw, start_time_raw, end_time_raw
+        )
+
+        if not title:
+            error_message = "Title is required."
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify({"ok": False, "error": error_message}), 400
+            flash(error_message, "danger")
+            return redirect(url_for("admin_meetings"))
+
+        if schedule_error:
+            error_message = schedule_error
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify({"ok": False, "error": error_message}), 400
+            flash(error_message, "danger")
+            return redirect(url_for("admin_meetings"))
+
+        meeting.title = title
+        meeting.description = description
+        meeting.meeting_date = meeting_date
+        meeting.start_time = start_time
+        meeting.end_time = end_time
 
         db.session.commit()
         flash("Meeting updated successfully.", "success")
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify(
+                {
+                    "ok": True,
+                    "meeting": {
+                        "id": meeting.id,
+                        "title": meeting.title,
+                        "description": meeting.description,
+                        "meeting_date": (
+                            meeting.meeting_date.isoformat()
+                            if meeting.meeting_date
+                            else None
+                        ),
+                        "start_time": (
+                            meeting.start_time.strftime("%H:%M")
+                            if meeting.start_time
+                            else None
+                        ),
+                        "end_time": (
+                            meeting.end_time.strftime("%H:%M")
+                            if meeting.end_time
+                            else None
+                        ),
+                    },
+                }
+            )
         return redirect(url_for("meeting_detail", meeting_id=meeting_id))
 
     @app.route("/admin/meetings/<int:meeting_id>/motions/new", methods=["GET", "POST"])
     @login_required
     def create_motion(meeting_id):
         meeting = Meeting.query.get_or_404(meeting_id)
+        ensure_meeting_owner(meeting)
 
         if request.method == "POST":
             title = (request.form.get("title") or "").strip()
@@ -259,6 +418,7 @@ def register_admin_routes(app):
     @login_required
     def create_voter(meeting_id):
         meeting = Meeting.query.get_or_404(meeting_id)
+        ensure_meeting_owner(meeting)
 
         if request.method == "POST":
             name = (request.form.get("name") or "").strip()
@@ -293,6 +453,7 @@ def register_admin_routes(app):
     @login_required
     def meeting_results(meeting_id):
         meeting = Meeting.query.get_or_404(meeting_id)
+        ensure_meeting_owner(meeting)
         results = []
 
         for motion in meeting.motions:
@@ -358,6 +519,7 @@ def register_admin_routes(app):
     @login_required
     def meeting_votes(meeting_id):
         meeting = Meeting.query.get_or_404(meeting_id)
+        ensure_meeting_owner(meeting)
         motions_detail = []
 
         for motion in meeting.motions:
