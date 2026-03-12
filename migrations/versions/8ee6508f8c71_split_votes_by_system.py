@@ -20,37 +20,108 @@ def upgrade():
     inspector = sa.inspect(bind)
     existing_tables = set(inspector.get_table_names())
 
-    op.create_table('candidate_votes',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('voter_id', sa.Integer(), nullable=False),
-    sa.Column('motion_id', sa.Integer(), nullable=False),
-    sa.Column('option_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['motion_id'], ['motions.id'], ),
-    sa.ForeignKeyConstraint(['option_id'], ['options.id'], ),
-    sa.ForeignKeyConstraint(['voter_id'], ['voters.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_table('preference_votes',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('voter_id', sa.Integer(), nullable=False),
-    sa.Column('motion_id', sa.Integer(), nullable=False),
-    sa.Column('option_id', sa.Integer(), nullable=False),
-    sa.Column('preference_rank', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['motion_id'], ['motions.id'], ),
-    sa.ForeignKeyConstraint(['option_id'], ['options.id'], ),
-    sa.ForeignKeyConstraint(['voter_id'], ['voters.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_table('yes_no_votes',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('voter_id', sa.Integer(), nullable=False),
-    sa.Column('motion_id', sa.Integer(), nullable=False),
-    sa.Column('option_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['motion_id'], ['motions.id'], ),
-    sa.ForeignKeyConstraint(['option_id'], ['options.id'], ),
-    sa.ForeignKeyConstraint(['voter_id'], ['voters.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
+    if "users" not in existing_tables:
+        op.create_table(
+            "users",
+            sa.Column("id", sa.Integer(), nullable=False),
+            sa.Column("username", sa.String(length=150), nullable=False),
+            sa.Column("email", sa.String(length=150), nullable=False),
+            sa.Column("password_hash", sa.String(length=256), nullable=False),
+            sa.PrimaryKeyConstraint("id"),
+            sa.UniqueConstraint("email"),
+            sa.UniqueConstraint("username"),
+        )
+        existing_tables.add("users")
+
+    if "meetings" not in existing_tables:
+        op.create_table(
+            "meetings",
+            sa.Column("id", sa.Integer(), nullable=False),
+            sa.Column("title", sa.String(length=200), nullable=False),
+            sa.Column("description", sa.Text(), nullable=True),
+            sa.Column("admin_id", sa.Integer(), nullable=True),
+            sa.ForeignKeyConstraint(["admin_id"], ["users.id"]),
+            sa.PrimaryKeyConstraint("id"),
+        )
+        existing_tables.add("meetings")
+
+    if "motions" not in existing_tables:
+        op.create_table(
+            "motions",
+            sa.Column("id", sa.Integer(), nullable=False),
+            sa.Column("meeting_id", sa.Integer(), nullable=False),
+            sa.Column("title", sa.String(length=200), nullable=False),
+            sa.Column("type", sa.String(length=50), nullable=False),
+            sa.Column("num_winners", sa.Integer(), nullable=True),
+            sa.Column("status", sa.String(length=20), nullable=False),
+            sa.ForeignKeyConstraint(["meeting_id"], ["meetings.id"]),
+            sa.PrimaryKeyConstraint("id"),
+        )
+        existing_tables.add("motions")
+
+    if "voters" not in existing_tables:
+        op.create_table(
+            "voters",
+            sa.Column("id", sa.Integer(), nullable=False),
+            sa.Column("meeting_id", sa.Integer(), nullable=False),
+            sa.Column("name", sa.String(length=200), nullable=False),
+            sa.Column("code", sa.String(length=50), nullable=False),
+            sa.ForeignKeyConstraint(["meeting_id"], ["meetings.id"]),
+            sa.PrimaryKeyConstraint("id"),
+            sa.UniqueConstraint("code"),
+        )
+        existing_tables.add("voters")
+
+    if "options" not in existing_tables:
+        op.create_table(
+            "options",
+            sa.Column("id", sa.Integer(), nullable=False),
+            sa.Column("motion_id", sa.Integer(), nullable=False),
+            sa.Column("text", sa.String(length=200), nullable=False),
+            sa.ForeignKeyConstraint(["motion_id"], ["motions.id"]),
+            sa.PrimaryKeyConstraint("id"),
+        )
+        existing_tables.add("options")
+
+    if "candidate_votes" not in existing_tables:
+        op.create_table(
+            'candidate_votes',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('voter_id', sa.Integer(), nullable=False),
+            sa.Column('motion_id', sa.Integer(), nullable=False),
+            sa.Column('option_id', sa.Integer(), nullable=False),
+            sa.ForeignKeyConstraint(['motion_id'], ['motions.id']),
+            sa.ForeignKeyConstraint(['option_id'], ['options.id']),
+            sa.ForeignKeyConstraint(['voter_id'], ['voters.id']),
+            sa.PrimaryKeyConstraint('id')
+        )
+
+    if "preference_votes" not in existing_tables:
+        op.create_table(
+            'preference_votes',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('voter_id', sa.Integer(), nullable=False),
+            sa.Column('motion_id', sa.Integer(), nullable=False),
+            sa.Column('option_id', sa.Integer(), nullable=False),
+            sa.Column('preference_rank', sa.Integer(), nullable=False),
+            sa.ForeignKeyConstraint(['motion_id'], ['motions.id']),
+            sa.ForeignKeyConstraint(['option_id'], ['options.id']),
+            sa.ForeignKeyConstraint(['voter_id'], ['voters.id']),
+            sa.PrimaryKeyConstraint('id')
+        )
+
+    if "yes_no_votes" not in existing_tables:
+        op.create_table(
+            'yes_no_votes',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('voter_id', sa.Integer(), nullable=False),
+            sa.Column('motion_id', sa.Integer(), nullable=False),
+            sa.Column('option_id', sa.Integer(), nullable=False),
+            sa.ForeignKeyConstraint(['motion_id'], ['motions.id']),
+            sa.ForeignKeyConstraint(['option_id'], ['options.id']),
+            sa.ForeignKeyConstraint(['voter_id'], ['voters.id']),
+            sa.PrimaryKeyConstraint('id')
+        )
     if "votes" in existing_tables:
         op.execute(
             sa.text(
@@ -89,18 +160,23 @@ def upgrade():
 
 
 def downgrade():
-    op.create_table(
-    'votes',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('voter_id', sa.Integer(), nullable=False),
-    sa.Column('motion_id', sa.Integer(), nullable=False),
-    sa.Column('option_id', sa.Integer(), nullable=False),
-    sa.Column('preference_rank', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['motion_id'], ['motions.id']),
-    sa.ForeignKeyConstraint(['option_id'], ['options.id']),
-    sa.ForeignKeyConstraint(['voter_id'], ['voters.id']),
-    sa.PrimaryKeyConstraint('id')
-    )
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    existing_tables = set(inspector.get_table_names())
+
+    if "votes" not in existing_tables:
+        op.create_table(
+            'votes',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('voter_id', sa.Integer(), nullable=False),
+            sa.Column('motion_id', sa.Integer(), nullable=False),
+            sa.Column('option_id', sa.Integer(), nullable=False),
+            sa.Column('preference_rank', sa.Integer(), nullable=True),
+            sa.ForeignKeyConstraint(['motion_id'], ['motions.id']),
+            sa.ForeignKeyConstraint(['option_id'], ['options.id']),
+            sa.ForeignKeyConstraint(['voter_id'], ['voters.id']),
+            sa.PrimaryKeyConstraint('id')
+        )
     op.execute(
         sa.text(
             """
@@ -125,6 +201,19 @@ def downgrade():
             """
         )
     )
-    op.drop_table('yes_no_votes')
-    op.drop_table('preference_votes')
-    op.drop_table('candidate_votes')
+    if "yes_no_votes" in existing_tables:
+        op.drop_table('yes_no_votes')
+    if "preference_votes" in existing_tables:
+        op.drop_table('preference_votes')
+    if "candidate_votes" in existing_tables:
+        op.drop_table('candidate_votes')
+    if "options" in existing_tables:
+        op.drop_table("options")
+    if "voters" in existing_tables:
+        op.drop_table("voters")
+    if "motions" in existing_tables:
+        op.drop_table("motions")
+    if "meetings" in existing_tables:
+        op.drop_table("meetings")
+    if "users" in existing_tables:
+        op.drop_table("users")
