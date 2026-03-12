@@ -6,13 +6,15 @@ from app.models import User
 from app.routes import register_routes
 
 
-def create_app():
+def create_app(config_override=None):
     app = Flask(
         __name__,
         template_folder="../templates",
         static_folder="../static",
     )
     app.config.from_object(Config)
+    if config_override:
+        app.config.update(config_override)
 
     db.init_app(app)
     migrate.init_app(app, db)
