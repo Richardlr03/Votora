@@ -11,6 +11,8 @@ class Meeting(db.Model):
     start_time = db.Column(db.Time, nullable=True)
     end_time = db.Column(db.Time, nullable=True)
     admin_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    join_token = db.Column(db.String(64), unique=True, nullable=True)
+    registration_open = db.Column(db.Boolean, nullable=False, default=False)
 
     motions = db.relationship("Motion", backref="meeting", lazy=True)
     voters = db.relationship("Voter", backref="meeting", lazy=True)
