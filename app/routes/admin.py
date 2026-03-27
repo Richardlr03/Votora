@@ -14,7 +14,7 @@ from app.models import (
     Voter,
     YesNoVote,
 )
-from app.services.security import generate_voter_code
+from app.services.security import generate_join_token, generate_voter_code
 from app.services.voting import (
     tally_candidate_election,
     tally_cumulative_votes,
@@ -176,6 +176,34 @@ def register_admin_routes(app):
         meeting = Meeting.query.get_or_404(meeting_id)
         ensure_meeting_owner(meeting)
         return render_template("admin/meeting_detail.html", meeting=meeting)
+
+    @app.route("/admin/meetings/<int:meeting_id>/join-token", methods=["POST"])
+    @login_required
+    def generate_meeting_join_token(meeting_id):
+        meeting = Meeting.query.get_or_404(meeting_id)
+        ensure_meeting_owner(meeting)
+
+        if not meeting.join_token:
+            meeting.join_token = generate_join_token()
+
+        meeting.registration_open = True
+        db.session.commit()
+
+        join_url = url_for(
+            "join_meeting_by_token",
+            token=meeting.join_token,
+            _external=True,
+        )
+
+        return jsonify(
+            {
+                "ok": True,
+                "meeting_id": meeting.id,
+                "join_token": meeting.join_token,
+                "join_url": join_url,
+                "registration_open": meeting.registration_open,
+            }
+        )
 
     @app.route("/admin/meetings/<int:meeting_id>/delete", methods=["POST"])
     @login_required
@@ -421,7 +449,15 @@ def register_admin_routes(app):
         ensure_meeting_owner(meeting)
 
         if request.method == "POST":
+            student_id = (request.form.get("student_id") or "").strip()
             name = (request.form.get("name") or "").strip()
+            if not student_id:
+                error = {"ok": False, "error": "Student ID is required."}
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return error, 400
+                flash(error["error"], "error")
+                return redirect(url_for("meeting_detail", meeting_id=meeting.id))
+
             if not name:
                 error = {"ok": False, "error": "Voter name is required."}
                 if request.headers.get("X-Requested-With") == "XMLHttpRequest":
@@ -429,7 +465,22 @@ def register_admin_routes(app):
                 flash(error["error"], "error")
                 return redirect(url_for("meeting_detail", meeting_id=meeting.id))
 
-            voter = Voter(meeting_id=meeting.id, name=name, code=generate_voter_code())
+            existing_voter = Voter.query.filter_by(
+                meeting_id=meeting.id, student_id=student_id
+            ).first()
+            if existing_voter:
+                error = {"ok": False, "error": "Student ID has already joined this meeting."}
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return error, 400
+                flash(error["error"], "error")
+                return redirect(url_for("meeting_detail", meeting_id=meeting.id))
+
+            voter = Voter(
+                meeting_id=meeting.id,
+                student_id=student_id,
+                name=name,
+                code=generate_voter_code(),
+            )
             db.session.add(voter)
             db.session.commit()
 
@@ -438,6 +489,7 @@ def register_admin_routes(app):
                     "ok": True,
                     "voter": {
                         "id": voter.id,
+                        "student_id": voter.student_id,
                         "name": voter.name,
                         "code": voter.code,
                     },

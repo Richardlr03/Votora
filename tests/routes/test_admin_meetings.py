@@ -69,3 +69,69 @@ def test_create_meeting_schedule_validation_returns_single_error(auth_client):
     assert (
         payload["error"] == "Meeting date is required when start/end time is set."
     )
+
+
+def test_generate_meeting_join_token_sets_registration_open(
+    db_session, auth_client, admin_user
+):
+    meeting = Meeting(
+        title="QR Meeting",
+        admin_id=admin_user.id,
+    )
+    db_session.add(meeting)
+    db_session.commit()
+
+    response = auth_client.post(
+        f"/admin/meetings/{meeting.id}/join-token",
+        headers={"X-Requested-With": "XMLHttpRequest"},
+    )
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["ok"] is True
+    assert payload["meeting_id"] == meeting.id
+    assert payload["registration_open"] is True
+    assert payload["join_token"]
+    assert payload["join_url"].endswith(f"/join/meeting/{payload['join_token']}")
+
+    db_session.refresh(meeting)
+    assert meeting.registration_open is True
+    assert meeting.join_token == payload["join_token"]
+
+
+def test_generate_meeting_join_token_reuses_existing_token(
+    db_session, auth_client, admin_user
+):
+    meeting = Meeting(
+        title="Existing Token Meeting",
+        admin_id=admin_user.id,
+        join_token="existingtoken123",
+        registration_open=False,
+    )
+    db_session.add(meeting)
+    db_session.commit()
+
+    response = auth_client.post(f"/admin/meetings/{meeting.id}/join-token")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["join_token"] == "existingtoken123"
+    assert payload["registration_open"] is True
+
+    db_session.refresh(meeting)
+    assert meeting.join_token == "existingtoken123"
+    assert meeting.registration_open is True
+
+
+def test_generate_meeting_join_token_for_other_admin_returns_403(
+    db_session, auth_client, other_admin_user
+):
+    meeting = Meeting(
+        title="Other Admin QR Meeting",
+        admin_id=other_admin_user.id,
+    )
+    db_session.add(meeting)
+    db_session.commit()
+
+    response = auth_client.post(f"/admin/meetings/{meeting.id}/join-token")
+    assert response.status_code == 403

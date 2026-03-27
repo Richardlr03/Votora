@@ -160,6 +160,13 @@
             </button>
             <button
               type="button"
+              class="btn btn-sm btn-outline-primary generate-qr-btn"
+              data-meeting-id="{{ meeting.id }}"
+            >
+              <i class="bi bi-qr-code me-1"></i> QR
+            </button>
+            <button
+              type="button"
               class="btn btn-sm btn-primary"
               data-bs-toggle="modal"
               data-bs-target="#addVoterModal"
@@ -214,7 +221,7 @@
                   <i class="bi bi-people" style="font-size: 2rem;"></i>
                 </div>
                 <h3 class="h6 mb-1">No voters added</h3>
-                <p class="text-muted mb-0">Add voters so they can receive access codes.</p>
+                <p class="text-muted mb-0">Add voters manually or generate a QR code for self check-in.</p>
               </div>
             {% endif %}
           </div>
@@ -365,7 +372,7 @@
       <div class="col-lg-6">
         <div class="card border-0 shadow-sm h-100">
           <div class="card-header bg-white border-0 pt-3 pb-0 px-3 px-md-4">
-            <div class="d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
               <div>
                 <h2 class="h5 mb-0">Voters</h2>
                 <div class="text-muted small">
@@ -373,14 +380,23 @@
                 </div>
               </div>
 
-              <button
-                type="button"
-                class="btn btn-sm btn-primary"
-                data-bs-toggle="modal"
-                data-bs-target="#addVoterModal"
-              >
-                <i class="bi bi-plus-lg me-1"></i> Add Voter
-              </button>
+              <div class="d-flex gap-2">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-primary generate-qr-btn"
+                  data-meeting-id="{{ meeting.id }}"
+                >
+                  <i class="bi bi-qr-code me-1"></i> Generate QR Code
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-primary"
+                  data-bs-toggle="modal"
+                  data-bs-target="#addVoterModal"
+                >
+                  <i class="bi bi-plus-lg me-1"></i> Add Voter
+                </button>
+              </div>
             </div>
           </div>
 
@@ -430,7 +446,7 @@
                   <i class="bi bi-people" style="font-size: 2rem;"></i>
                 </div>
                 <h3 class="h6 mb-1">No voters added</h3>
-                <p class="text-muted mb-3">Add voters so they can receive access codes.</p>
+                <p class="text-muted mb-3">Add voters manually or generate a QR code for self check-in.</p>
               </div>
             {% endif %}
           </div>
@@ -612,6 +628,11 @@
             <div class="alert alert-danger d-none" id="addVoterError" role="alert"></div>
 
             <div class="mb-3">
+              <label for="voterStudentId" class="form-label">Student ID</label>
+              <input type="text" class="form-control" id="voterStudentId" name="student_id" required>
+            </div>
+
+            <div class="mb-3">
               <label for="voterName" class="form-label">Voter Name</label>
               <input type="text" class="form-control" id="voterName" name="name" required>
             </div>
@@ -626,6 +647,58 @@
             <button type="submit" class="btn btn-primary" id="addVoterSubmit">Add Voter</button>
           </div>
         </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="meetingQrModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-light border-0">
+          <h5 class="modal-title"><i class="bi bi-qr-code me-2"></i>Meeting QR Code</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4 text-center">
+          <div class="alert alert-danger d-none text-start" id="meetingQrError" role="alert"></div>
+
+          <div class="small text-muted mb-3">
+            Scanning this QR code opens the meeting check-in page for {{ meeting.title }}.
+          </div>
+
+          <div class="border rounded-4 bg-light p-3 mb-3 qr-preview-shell">
+            <div id="meetingQrLoading" class="py-5">
+              <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+              <div class="small text-muted mt-3">Generating join link...</div>
+            </div>
+
+            <img
+              id="meetingQrImage"
+              class="img-fluid d-none mx-auto"
+              alt="Meeting QR code"
+              width="280"
+              height="280"
+            >
+          </div>
+
+          <div class="mb-2">
+            <span class="badge text-bg-success d-none" id="meetingQrStatusBadge">Registration Open</span>
+          </div>
+
+          <label for="meetingQrJoinUrl" class="form-label small text-muted">Join link</label>
+          <input
+            type="text"
+            class="form-control form-control-sm text-center"
+            id="meetingQrJoinUrl"
+            readonly
+            value=""
+          >
+        </div>
+        <div class="modal-footer bg-light border-0">
+          <button type="button" class="btn btn-outline-secondary" id="copyMeetingJoinUrl">Copy Link</button>
+          <button type="button" class="btn btn-primary generate-qr-btn" data-meeting-id="{{ meeting.id }}">
+            Regenerate / Open
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -930,6 +1003,59 @@
       const voterSubmit = document.getElementById("addVoterSubmit");
       const voterError = document.getElementById("addVoterError");
       const voterModal = new bootstrap.Modal(voterModalEl);
+      const qrModalEl = document.getElementById("meetingQrModal");
+      const qrModal = new bootstrap.Modal(qrModalEl);
+      const qrError = document.getElementById("meetingQrError");
+      const qrLoading = document.getElementById("meetingQrLoading");
+      const qrImage = document.getElementById("meetingQrImage");
+      const qrJoinUrlInput = document.getElementById("meetingQrJoinUrl");
+      const qrStatusBadge = document.getElementById("meetingQrStatusBadge");
+      const copyMeetingJoinUrlBtn = document.getElementById("copyMeetingJoinUrl");
+
+      function setQrState({ loading = false, error = "", joinUrl = "", registrationOpen = false } = {}) {
+        qrLoading.classList.toggle("d-none", !loading);
+        qrImage.classList.toggle("d-none", loading || !joinUrl);
+        qrError.classList.toggle("d-none", !error);
+        qrError.textContent = error;
+        qrJoinUrlInput.value = joinUrl;
+        qrStatusBadge.classList.toggle("d-none", !registrationOpen);
+      }
+
+      function buildQrImageUrl(joinUrl) {
+        return `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(joinUrl)}`;
+      }
+
+      async function openMeetingQrModal(meetingId) {
+        qrModal.show();
+        setQrState({ loading: true });
+
+        try {
+          const response = await fetch(`/admin/meetings/${meetingId}/join-token`, {
+            method: "POST",
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+          });
+
+          if (!response.ok) {
+            let message = "Failed to generate the meeting QR code.";
+            try {
+              const data = await response.json();
+              if (data && data.error) message = data.error;
+            } catch (err) { /* ignore parse errors */ }
+            throw new Error(message);
+          }
+
+          const data = await response.json();
+          qrImage.src = buildQrImageUrl(data.join_url);
+          setQrState({
+            loading: false,
+            joinUrl: data.join_url,
+            registrationOpen: data.registration_open,
+          });
+        } catch (err) {
+          qrImage.removeAttribute("src");
+          setQrState({ loading: false, error: err.message });
+        }
+      }
 
       function setVoterLoading(isLoading) {
         voterSubmit.disabled = isLoading;
@@ -980,6 +1106,34 @@
         voterForm.reset();
         voterError.classList.add("d-none");
         setVoterLoading(false);
+      });
+
+      document.querySelectorAll(".generate-qr-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          openMeetingQrModal(btn.dataset.meetingId);
+        });
+      });
+
+      copyMeetingJoinUrlBtn.addEventListener("click", async () => {
+        if (!qrJoinUrlInput.value) {
+          return;
+        }
+
+        try {
+          await navigator.clipboard.writeText(qrJoinUrlInput.value);
+          if (typeof showFlashModal === "function") {
+            showFlashModal("success", "Meeting join link copied.");
+          }
+        } catch (err) {
+          if (typeof showFlashModal === "function") {
+            showFlashModal("danger", "Failed to copy join link.");
+          }
+        }
+      });
+
+      qrModalEl.addEventListener("hidden.bs.modal", () => {
+        qrImage.removeAttribute("src");
+        setQrState();
       });
 
       // --- Edit and Delete Voter Logic ---

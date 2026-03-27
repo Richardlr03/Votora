@@ -10,6 +10,10 @@ def generate_voter_code():
     return uuid.uuid4().hex[:8].upper()
 
 
+def generate_join_token():
+    return uuid.uuid4().hex
+
+
 def _reset_serializer():
     return URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
 

@@ -4,6 +4,7 @@ from app.extensions import db
 from app.models import (
     CandidateVote,
     CumulativeVote,
+    Meeting,
     Motion,
     PreferenceVote,
     ScoreVote,
@@ -46,6 +47,15 @@ def register_public_routes(app):
             return redirect(url_for("join_meeting"))
 
         return render_template("voter/join.html")
+
+    @app.route("/join/meeting/<token>", methods=["GET"])
+    def join_meeting_by_token(token):
+        meeting = Meeting.query.filter_by(join_token=token).first_or_404()
+        return render_template(
+            "voter/join.html",
+            qr_join_meeting=meeting,
+            registration_open=meeting.registration_open,
+        )
 
     @app.route("/voter-logout")
     def voter_logout():
