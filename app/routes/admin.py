@@ -657,8 +657,22 @@ def register_admin_routes(app):
     @login_required
     def delete_user(voter_id):
         voter = Voter.query.get_or_404(voter_id)
+        ensure_meeting_owner(voter.meeting)
 
         try:
+            YesNoVote.query.filter_by(voter_id=voter.id).delete(synchronize_session=False)
+            CandidateVote.query.filter_by(voter_id=voter.id).delete(
+                synchronize_session=False
+            )
+            PreferenceVote.query.filter_by(voter_id=voter.id).delete(
+                synchronize_session=False
+            )
+            ScoreVote.query.filter_by(voter_id=voter.id).delete(
+                synchronize_session=False
+            )
+            CumulativeVote.query.filter_by(voter_id=voter.id).delete(
+                synchronize_session=False
+            )
             db.session.delete(voter)
             db.session.commit()
             flash("Voter deleted successfully.", "success")
