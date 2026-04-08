@@ -469,7 +469,10 @@ def register_admin_routes(app):
                 meeting_id=meeting.id, student_id=student_id
             ).first()
             if existing_voter:
-                error = {"ok": False, "error": "Student ID has already joined this meeting."}
+                error = {
+                    "ok": False,
+                    "error": "Voter with the Stdudent ID has already joined",
+                }
                 if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                     return error, 400
                 flash(error["error"], "error")

@@ -638,10 +638,6 @@
               <label for="voterName" class="form-label">Voter Name</label>
               <input type="text" class="form-control" id="voterName" name="name" required>
             </div>
-
-            <p class="text-muted mb-0">
-              A unique access code will be generated automatically for this voter.
-            </p>
           </div>
 
           <div class="modal-footer bg-light border-0">
@@ -1073,7 +1069,6 @@
       voterForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         setVoterLoading(true);
-        voterError.classList.add("d-none");
 
         const formData = new FormData(voterForm);
         try {
@@ -1101,8 +1096,12 @@
           } catch (e) { /* ignore */ }
           window.location.reload();
         } catch (err) {
-          voterError.textContent = err.message;
-          voterError.classList.remove("d-none");
+          voterError.classList.add("d-none");
+          if (typeof showFlashModal === "function") {
+            showFlashModal("danger", err.message);
+          } else {
+            alert(err.message);
+          }
         } finally {
           setVoterLoading(false);
         }
