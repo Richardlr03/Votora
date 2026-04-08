@@ -11,6 +11,7 @@ from app.models import (
     Voter,
     YesNoVote,
 )
+from app.services.security import generate_voter_code
 
 
 def register_public_routes(app):
@@ -48,13 +49,52 @@ def register_public_routes(app):
 
         return render_template("voter/join.html")
 
-    @app.route("/join/meeting/<token>", methods=["GET"])
+    @app.route("/join/meeting/<token>", methods=["GET", "POST"])
     def join_meeting_by_token(token):
         meeting = Meeting.query.filter_by(join_token=token).first_or_404()
+
+        form_student_id = ""
+        form_name = ""
+        form_error = None
+
+        if request.method == "POST":
+            form_student_id = (request.form.get("student_id") or "").strip().upper()
+            form_name = (request.form.get("name") or "").strip()
+
+            if not meeting.registration_open:
+                form_error = "Registration is closed for this meeting."
+            elif not form_student_id:
+                form_error = "Student ID is required."
+            elif not form_name:
+                form_error = "Full name is required."
+            else:
+                existing_voter = Voter.query.filter_by(
+                    meeting_id=meeting.id, student_id=form_student_id
+                ).first()
+                if existing_voter:
+                    form_error = "This student ID has already joined the meeting."
+                else:
+                    voter = Voter(
+                        meeting_id=meeting.id,
+                        student_id=form_student_id,
+                        name=form_name,
+                        code=generate_voter_code(),
+                    )
+                    db.session.add(voter)
+                    db.session.commit()
+
+                    session["voter_id"] = voter.id
+                    session["voter_name"] = voter.name
+                    session["voter_code"] = voter.code
+                    return redirect(url_for("voter_dashboard", code=voter.code))
+
         return render_template(
-            "voter/join.html",
-            qr_join_meeting=meeting,
+            "voter/join_qr.html",
+            meeting=meeting,
             registration_open=meeting.registration_open,
+            form_error=form_error,
+            form_student_id=form_student_id,
+            form_name=form_name,
         )
 
     @app.route("/voter-logout")

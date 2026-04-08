@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Join {{ meeting.title }} - Votora{% endblock %}
+
+{% block content %}
+<div class="qr-join-page py-3 py-md-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-6 col-xl-5">
+      <div class="card border-0 shadow-lg overflow-hidden qr-join-card">
+        <div class="p-4 p-md-5">
+          <h2 class="h4 fw-bold mb-2">{{ meeting.title }}</h2>
+          <div class="small text-uppercase fw-semibold text-muted mb-2">Meeting Check-In</div>
+
+          {% if form_error %}
+            <div class="alert alert-danger border-0 rounded-4">{{ form_error }}</div>
+          {% endif %}
+
+          {% if registration_open %}
+            <form method="POST" class="d-grid gap-3 qr-join-form">
+              <div>
+                <label for="studentId" class="form-label">Student ID</label>
+                <input
+                  type="text"
+                  class="form-control form-control-lg"
+                  id="studentId"
+                  name="student_id"
+                  value="{{ form_student_id }}"
+                  placeholder="e.g. 500123456"
+                  autocomplete="off"
+                  required
+                >
+              </div>
+
+              <div>
+                <label for="fullName" class="form-label">Full name</label>
+                <input
+                  type="text"
+                  class="form-control form-control-lg"
+                  id="fullName"
+                  name="name"
+                  value="{{ form_name }}"
+                  placeholder="Enter your full name"
+                  autocomplete="name"
+                  required
+                >
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-lg mt-2">
+                Continue to Voting
+              </button>
+            </form>
+          {% else %}
+            <div class="rounded-4 border p-4 bg-light">
+              <div class="fw-semibold mb-2">This invitation link is no longer accepting new voters.</div>
+              <div class="text-muted">Ask the meeting admin to reopen registration or generate a fresh QR code.</div>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .qr-join-card {
+    border-radius: 28px;
+    background: rgba(255, 255, 255, 0.96);
+  }
+
+  .qr-join-form {
+    max-width: 30rem;
+  }
+
+  @media (max-width: 767.98px) {
+    .qr-join-card {
+      border-radius: 22px;
+    }
+  }
+</style>
+{% endblock %}
