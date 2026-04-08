@@ -639,12 +639,26 @@ def register_admin_routes(app):
     @login_required
     def update_user(voter_id):
         voter = Voter.query.get_or_404(voter_id)
-        new_name = request.form.get("name")
+        ensure_meeting_owner(voter.meeting)
+        new_student_id = (request.form.get("student_id") or "").strip()
+        new_name = (request.form.get("name") or "").strip()
 
-        if not new_name or len(new_name.strip()) == 0:
+        if not new_student_id:
+            return jsonify({"error": "Student ID is required"}), 400
+
+        if not new_name:
             return jsonify({"error": "Voter name is required"}), 400
 
+        existing_voter = Voter.query.filter(
+            Voter.meeting_id == voter.meeting_id,
+            Voter.student_id == new_student_id,
+            Voter.id != voter.id,
+        ).first()
+        if existing_voter:
+            return jsonify({"error": "Student ID has already joined this meeting"}), 400
+
         try:
+            voter.student_id = new_student_id
             voter.name = new_name
             db.session.commit()
             flash("Voter updated successfully.", "success")

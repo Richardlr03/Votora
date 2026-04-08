@@ -199,6 +199,7 @@
                         <button type="button"
                                 class="btn btn-sm btn-outline-secondary edit-voter-btn"
                                 data-voter-id="{{ voter.id }}"
+                                data-voter-student-id="{{ voter.student_id }}"
                                 data-voter-name="{{ voter.name }}"
                                 title="Edit Voter">
                           <i class="bi bi-pencil"></i>
@@ -424,6 +425,7 @@
                         <button type="button" 
                                 class="btn btn-sm btn-outline-secondary edit-voter-btn" 
                                 data-voter-id="{{ voter.id }}" 
+                                data-voter-student-id="{{ voter.student_id }}"
                                 data-voter-name="{{ voter.name }}"
                                 title="Edit Voter">
                           <i class="bi bi-pencil"></i>
@@ -717,6 +719,10 @@
             <div class="mb-3">
               <label for="editVoterName" class="form-label">Voter Name</label>
               <input type="text" class="form-control" id="editVoterName" name="name" required>
+            </div>
+            <div class="mb-3">
+              <label for="editVoterStudentId" class="form-label">Student ID</label>
+              <input type="text" class="form-control" id="editVoterStudentId" name="student_id" required>
             </div>
           </div>
           <div class="modal-footer bg-light border-0">
@@ -1145,6 +1151,7 @@
       document.querySelectorAll('.edit-voter-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           currentVoterId = btn.dataset.voterId;
+          document.getElementById('editVoterStudentId').value = btn.dataset.voterStudentId;
           document.getElementById('editVoterName').value = btn.dataset.voterName;
           editVoterModal.show();
         });
@@ -1153,18 +1160,26 @@
       // Submit Edit
       document.getElementById('editVoterForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const name = document.getElementById('editVoterName').value;
-        // Assumes a route like /admin/voter/<id>/update
+        const formData = new FormData(e.target);
         const url = `/admin/voter/${currentVoterId}/update`; 
         
         try {
           const response = await fetch(url, {
             method: 'POST',
-            body: new FormData(e.target),
+            body: formData,
             headers: { "X-Requested-With": "XMLHttpRequest" }
           });
-          if (response.ok) window.location.reload();
-          else alert("Failed to update voter");
+          if (response.ok) {
+            window.location.reload();
+            return;
+          }
+
+          let message = "Failed to update voter";
+          try {
+            const data = await response.json();
+            if (data && data.error) message = data.error;
+          } catch (err) { /* ignore parse errors */ }
+          alert(message);
         } catch (err) { console.error(err); }
       });
 
