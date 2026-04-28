@@ -145,8 +145,18 @@ def register_admin_meeting_routes(app):
         meeting = Meeting.query.get_or_404(meeting_id)
         ensure_meeting_owner(meeting)
 
-        motion_ids = [motion.id for motion in meeting.motions]
-        voter_ids = [voter.id for voter in meeting.voters]
+        motion_ids = [
+            motion_id
+            for (motion_id,) in db.session.query(Motion.id).filter_by(
+                meeting_id=meeting.id
+            )
+        ]
+        voter_ids = [
+            voter_id
+            for (voter_id,) in db.session.query(Voter.id).filter_by(
+                meeting_id=meeting.id
+            )
+        ]
 
         if motion_ids:
             YesNoVote.query.filter(YesNoVote.motion_id.in_(motion_ids)).delete(

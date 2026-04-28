@@ -1,6 +1,6 @@
 from datetime import date, time
 
-from app.models import Meeting
+from app.models import Meeting, Motion, Option, Voter, YesNoVote
 
 
 def test_admin_meetings_sorted_by_date_then_time(db_session, auth_client, admin_user):
@@ -51,6 +51,48 @@ def test_meeting_detail_for_other_admin_returns_403(
 
     response = auth_client.get(f"/admin/meetings/{meeting.id}")
     assert response.status_code == 403
+
+
+def test_delete_meeting_removes_related_rows(db_session, auth_client, admin_user):
+    meeting = Meeting(title="Delete Me", admin_id=admin_user.id)
+    db_session.add(meeting)
+    db_session.flush()
+
+    motion = Motion(meeting_id=meeting.id, title="Approve Budget", type="YES_NO")
+    voter = Voter(
+        meeting_id=meeting.id,
+        student_id="SID123",
+        name="Test Voter",
+        code="delete-meeting-voter",
+    )
+    db_session.add_all([motion, voter])
+    db_session.flush()
+
+    option = Option(motion_id=motion.id, text="Yes")
+    db_session.add(option)
+    db_session.flush()
+
+    vote = YesNoVote(voter_id=voter.id, motion_id=motion.id, option_id=option.id)
+    db_session.add(vote)
+    db_session.commit()
+    meeting_id = meeting.id
+    motion_id = motion.id
+    voter_id = voter.id
+    option_id = option.id
+    vote_id = vote.id
+
+    response = auth_client.post(
+        f"/admin/meetings/{meeting_id}/delete",
+        headers={"X-Requested-With": "XMLHttpRequest"},
+    )
+
+    assert response.status_code == 200
+    assert response.get_json() == {"ok": True}
+    assert Meeting.query.get(meeting_id) is None
+    assert Motion.query.filter_by(id=motion_id).first() is None
+    assert Voter.query.filter_by(id=voter_id).first() is None
+    assert Option.query.filter_by(id=option_id).first() is None
+    assert YesNoVote.query.filter_by(id=vote_id).first() is None
 
 
 def test_create_meeting_schedule_validation_returns_single_error(auth_client):
