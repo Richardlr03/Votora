@@ -1,4 +1,4 @@
-import smtplib
+import resend
 import uuid
 from email.message import EmailMessage
 
@@ -28,28 +28,27 @@ def verify_reset_token(token, max_age=1800):
     except (BadSignature, SignatureExpired):
         return None
 
-
 def send_reset_email(to_email, reset_url):
-    if not current_app.config["MAIL_USERNAME"] or not current_app.config["MAIL_PASSWORD"]:
-        raise RuntimeError("Email credentials are not configured.")
+    api_key = current_app.config["RESEND_API_KEY"]
 
-    msg = EmailMessage()
-    msg["Subject"] = "Reset your Votora password"
-    msg["From"] = current_app.config["MAIL_DEFAULT_SENDER"]
-    msg["To"] = to_email
-    msg.set_content(
-        "You requested a password reset for Votora.\n\n"
-        f"Reset your password here: {reset_url}\n\n"
-        "This link will expire in 30 minutes. If you did not request this, ignore this email."
+    if not api_key:
+        raise RuntimeError("RESEND_API_KEY is missing.")
+
+    resend.api_key = api_key
+
+    resend.Emails.send({
+        "from": "Votora <noreply@votora.me>",
+        "to": [to_email],
+        "subject": "Reset your Votora password",
+        "text": (
+            "You requested a password reset for Votora.\n\n"
+            f"Reset your password here:\n{reset_url}\n\n"
+            "This link expires in 30 minutes.\n"
+            "If you did not request this, ignore this email."
+        ),
+    })
+
+    current_app.logger.info(
+        "Password reset email sent to %s",
+        to_email
     )
-
-    with smtplib.SMTP(
-        current_app.config["MAIL_SERVER"], current_app.config["MAIL_PORT"]
-    ) as server:
-        if current_app.config["MAIL_USE_TLS"]:
-            server.starttls()
-        server.login(
-            current_app.config["MAIL_USERNAME"], current_app.config["MAIL_PASSWORD"]
-        )
-        server.send_message(msg)
-        current_app.logger.info("Password reset email sent to %s", to_email)

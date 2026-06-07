@@ -84,11 +84,15 @@ def register_auth_routes(app):
                 reset_url = url_for("reset_password", token=reset_token, _external=True)
                 try:
                     send_reset_email(user.email, reset_url)
-                except Exception:
+
+                except Exception as e:
+                    current_app.logger.exception(e)
+
                     flash(
-                        "Email service is not configured. Please contact the administrator.",
-                        "reset_error",
+                        f"Email failed: {str(e)}",
+                        "reset_error"
                     )
+
                     return redirect(url_for("forgot_password"))
             else:
                 current_app.logger.warning(
