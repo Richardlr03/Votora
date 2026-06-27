@@ -28,8 +28,8 @@ def test_score_tally_one_winner(db_session):
     db_session.add_all([option_a, option_b])
     db_session.flush()
 
-    voter_1 = Voter(meeting_id=meeting.id, name="V1", code="CODE0001")
-    voter_2 = Voter(meeting_id=meeting.id, name="V2", code="CODE0002")
+    voter_1 = Voter(meeting_id=meeting.id, student_id="530000001", name="V1", code="CODE0001")
+    voter_2 = Voter(meeting_id=meeting.id, student_id="530000002", name="V2", code="CODE0002")
     db_session.add_all([voter_1, voter_2])
     db_session.flush()
 
@@ -99,8 +99,8 @@ def test_score_tally_tiebreak_one_winner(db_session):
     db_session.add_all([option_a, option_b])
     db_session.flush()
 
-    voter_1 = Voter(meeting_id=meeting.id, name="V1", code="CODE0001")
-    voter_2 = Voter(meeting_id=meeting.id, name="V2", code="CODE0002")
+    voter_1 = Voter(meeting_id=meeting.id, student_id="530000001", name="V1", code="CODE0001")
+    voter_2 = Voter(meeting_id=meeting.id, student_id="530000002", name="V2", code="CODE0002")
     db_session.add_all([voter_1, voter_2])
     db_session.flush()
 
@@ -169,8 +169,8 @@ def test_score_tally_deadlock_when_point_level_distribution_matches(db_session):
     db_session.add_all([option_a, option_b])
     db_session.flush()
 
-    voter_1 = Voter(meeting_id=meeting.id, name="V1", code="CODE0001")
-    voter_2 = Voter(meeting_id=meeting.id, name="V2", code="CODE0002")
+    voter_1 = Voter(meeting_id=meeting.id, student_id="530000001", name="V1", code="CODE0001")
+    voter_2 = Voter(meeting_id=meeting.id, student_id="530000002", name="V2", code="CODE0002")
     db_session.add_all([voter_1, voter_2])
     db_session.flush()
 

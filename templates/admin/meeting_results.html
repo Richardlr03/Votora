@@ -61,22 +61,28 @@
                 <hr class="my-3">
 
                 <div class="row g-2 mb-3">
-                  <div class="col-4">
+                  <div class="col-6">
                     <div class="p-2 rounded-3 bg-light border text-center">
-                      <div class="text-muted small">Ballots</div>
+                      <div class="text-muted small">Valid ballots</div>
                       <div class="fw-semibold">{{ pref.total_ballots }}</div>
                     </div>
                   </div>
-                  <div class="col-4">
+                  <div class="col-6">
                     <div class="p-2 rounded-3 bg-light border text-center">
-                      <div class="text-muted small">Winners</div>
+                      <div class="text-muted small">Droop quota</div>
+                      <div class="fw-semibold">{{ pref.quota }}</div>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="p-2 rounded-3 bg-light border text-center">
+                      <div class="text-muted small">Seats</div>
                       <div class="fw-semibold">{{ pref.num_winners }}</div>
                     </div>
                   </div>
-                  <div class="col-4">
+                  <div class="col-6">
                     <div class="p-2 rounded-3 bg-light border text-center">
-                      <div class="text-muted small">Rounds</div>
-                      <div class="fw-semibold">{{ pref.seats|length }}</div>
+                      <div class="text-muted small">Informal</div>
+                      <div class="fw-semibold">{{ pref.informal_ballots|length }}</div>
                     </div>
                   </div>
                 </div>
@@ -96,80 +102,83 @@
                   </div>
                 </div>
 
-                <div class="accordion results-accordion" id="mobileSeatsAccordion{{ motion.id }}">
-                  {% for seat in pref.seats %}
-                    <div class="accordion-item border rounded-3 mb-2 overflow-hidden">
-                      <h2 class="accordion-header" id="mobileSeatHeading{{ motion.id }}_{{ seat.seat_number }}">
-                        <button
-                          class="accordion-button collapsed"
-                          type="button"
-                          data-bs-toggle="collapse"
-                          data-bs-target="#mobileSeatCollapse{{ motion.id }}_{{ seat.seat_number }}"
-                          aria-expanded="false"
-                          aria-controls="mobileSeatCollapse{{ motion.id }}_{{ seat.seat_number }}"
-                        >
-                          <div class="d-flex align-items-center justify-content-between w-100 pe-2">
-                            <div class="fw-semibold">
-                              Seat {{ seat.seat_number }}
-                            </div>
-                            <span class="badge text-bg-light border">
-                              {{ seat.rounds|length }} rounds
-                            </span>
-                          </div>
-                        </button>
-                      </h2>
-
-                      <div
-                        id="mobileSeatCollapse{{ motion.id }}_{{ seat.seat_number }}"
-                        class="accordion-collapse collapse"
-                        aria-labelledby="mobileSeatHeading{{ motion.id }}_{{ seat.seat_number }}"
-                        data-bs-parent="#mobileSeatsAccordion{{ motion.id }}"
-                      >
-                        <div class="accordion-body">
-                          <div class="mb-2">
-                            <span class="badge text-bg-success">
-                              <i class="bi bi-check2-circle me-1"></i>{{ seat.winner.text }}
-                            </span>
-                          </div>
-
-                          <div class="vstack gap-2">
-                            {% for round in seat.rounds %}
-                              <div class="border rounded-3 p-2">
-                                <div class="text-muted small mb-1">Round #{{ round.round_number }}</div>
-                                {% for row in round.counts %}
-                                  <div class="d-flex justify-content-between align-items-center small">
-                                    <span class="fw-semibold">{{ row.option.text }}</span>
-                                    <span>{{ row.count }}</span>
-                                  </div>
-                                {% endfor %}
-                              </div>
-                            {% endfor %}
-                          </div>
-
-                          {% if seat.round_logs %}
-                            <div class="mt-3">
-                              <div class="d-flex align-items-center gap-2 mb-2">
-                                <i class="bi bi-journal-text text-muted"></i>
-                                <h4 class="h6 mb-0">Round-by-round summary</h4>
-                              </div>
-
-                              <ol class="mb-0">
-                                {% for round_log in seat.round_logs %}
-                                  <li class="mb-2">
-                                    <div class="p-2 rounded-3 bg-light border">
-                                      {% for line in round_log %}
-                                        <div class="small">{{ line }}</div>
-                                      {% endfor %}
-                                    </div>
-                                  </li>
-                                {% endfor %}
-                              </ol>
-                            </div>
-                          {% endif %}
+                {% if pref.informal_ballots %}
+                  <div class="mb-3">
+                    <div class="text-muted small mb-1">Informal ballots</div>
+                    <div class="vstack gap-2">
+                      {% for entry in pref.informal_ballots %}
+                        <div class="border rounded-3 p-2">
+                          <div class="fw-semibold small">{{ entry.voter.name }}</div>
+                          <div class="text-muted small">{{ entry.reason }}</div>
                         </div>
+                      {% endfor %}
+                    </div>
+                  </div>
+                {% endif %}
+
+                <div class="accordion results-accordion" id="mobileStvAccordion{{ motion.id }}">
+                  <div class="accordion-item border rounded-3 mb-2 overflow-hidden">
+                    <h2 class="accordion-header" id="mobileStvHeading{{ motion.id }}">
+                      <button
+                        class="accordion-button collapsed"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#mobileStvCollapse{{ motion.id }}"
+                        aria-expanded="false"
+                        aria-controls="mobileStvCollapse{{ motion.id }}"
+                      >
+                        <div class="d-flex align-items-center justify-content-between w-100 pe-2">
+                          <div class="fw-semibold">STV count detail</div>
+                          <span class="badge text-bg-light border">
+                            {{ pref.rounds|length }} rounds
+                          </span>
+                        </div>
+                      </button>
+                    </h2>
+                    <div
+                      id="mobileStvCollapse{{ motion.id }}"
+                      class="accordion-collapse collapse"
+                      aria-labelledby="mobileStvHeading{{ motion.id }}"
+                      data-bs-parent="#mobileStvAccordion{{ motion.id }}"
+                    >
+                      <div class="accordion-body">
+                        <div class="vstack gap-2 mb-3">
+                          {% for round in pref.rounds %}
+                            <div class="border rounded-3 p-2">
+                              <div class="text-muted small mb-1">Round #{{ round.round_number }}</div>
+                              {% for row in round.counts %}
+                                <div class="d-flex justify-content-between align-items-center small">
+                                  <span class="fw-semibold">
+                                    {{ row.option.text }}
+                                    {% if row.status == 'elected' %}
+                                      <span class="badge text-bg-success ms-1">Elected</span>
+                                    {% elif row.status == 'eliminated' %}
+                                      <span class="badge text-bg-danger ms-1">Out</span>
+                                    {% endif %}
+                                  </span>
+                                  <span>{{ row.count }}</span>
+                                </div>
+                              {% endfor %}
+                            </div>
+                          {% endfor %}
+                        </div>
+
+                        {% if pref.round_logs %}
+                          <div class="mt-2">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                              <i class="bi bi-journal-text text-muted"></i>
+                              <h4 class="h6 mb-0">Count log</h4>
+                            </div>
+                            <div class="p-2 rounded-3 bg-light border">
+                              {% for line in pref.round_logs %}
+                                <div class="small">{{ line }}</div>
+                              {% endfor %}
+                            </div>
+                          </div>
+                        {% endif %}
                       </div>
                     </div>
-                  {% endfor %}
+                  </div>
                 </div>
               {% elif item.result_type == "FPTP" %}
                 {% set fptp = item.fptp %}
@@ -539,129 +548,151 @@
 
                 <hr class="my-3">
 
-                <!-- Summary strip -->
                 <div class="row g-3 mb-3">
-                  <div class="col-md-4">
+                  <div class="col-md-3">
                     <div class="p-3 rounded-3 bg-light border">
-                      <div class="text-muted small">Total ballots cast</div>
+                      <div class="text-muted small">Valid ballots (N)</div>
                       <div class="fs-5 fw-semibold">{{ pref.total_ballots }}</div>
                     </div>
                   </div>
-                  <div class="col-md-4">
+                  <div class="col-md-3">
                     <div class="p-3 rounded-3 bg-light border">
-                      <div class="text-muted small">Number of winners</div>
+                      <div class="text-muted small">Droop quota</div>
+                      <div class="fs-5 fw-semibold">{{ pref.quota }}</div>
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="p-3 rounded-3 bg-light border">
+                      <div class="text-muted small">Seats to fill</div>
                       <div class="fs-5 fw-semibold">{{ pref.num_winners }}</div>
                     </div>
                   </div>
-                  <div class="col-md-4">
+                  <div class="col-md-3">
                     <div class="p-3 rounded-3 bg-light border">
-                      <div class="text-muted small">Winners (in order)</div>
-                      <div class="mt-1">
-                        {% if pref.winners %}
-                          {% for w in pref.winners %}
-                            <span class="badge text-bg-success me-1 mb-1">
-                              <i class="bi bi-trophy me-1"></i>{{ w.text }}
-                            </span>
-                          {% endfor %}
-                        {% else %}
-                          <span class="text-muted">No winners determined.</span>
-                        {% endif %}
-                      </div>
+                      <div class="text-muted small">Informal ballots</div>
+                      <div class="fs-5 fw-semibold">{{ pref.informal_ballots|length }}</div>
                     </div>
                   </div>
                 </div>
 
-                <!-- Seats -->
-                <div class="accordion results-accordion" id="seatsAccordion{{ motion.id }}">
-                  {% for seat in pref.seats %}
-                    <div class="accordion-item border rounded-3 mb-2 overflow-hidden">
-                      <h2 class="accordion-header" id="seatHeading{{ motion.id }}_{{ seat.seat_number }}">
-                        <button
-                          class="accordion-button collapsed"
-                          type="button"
-                          data-bs-toggle="collapse"
-                          data-bs-target="#seatCollapse{{ motion.id }}_{{ seat.seat_number }}"
-                          aria-expanded="false"
-                          aria-controls="seatCollapse{{ motion.id }}_{{ seat.seat_number }}"
-                        >
-                          <div class="d-flex align-items-center justify-content-between w-100 pe-2">
-                            <div class="fw-semibold">
-                              Seat {{ seat.seat_number }}
-                              <span class="text-muted fw-normal ms-2">
-                                Winner:
-                                <span class="badge text-bg-success">
-                                  <i class="bi bi-check2-circle me-1"></i>{{ seat.winner.text }}
-                                </span>
-                              </span>
-                            </div>
-                            <span class="badge text-bg-light border">
-                              {{ seat.rounds|length }} rounds
-                            </span>
-                          </div>
-                        </button>
-                      </h2>
+                <div class="mb-3">
+                  <div class="text-muted small mb-1">Winners (in order)</div>
+                  <div>
+                    {% if pref.winners %}
+                      {% for w in pref.winners %}
+                        <span class="badge text-bg-success me-1 mb-1">
+                          <i class="bi bi-trophy me-1"></i>{{ w.text }}
+                        </span>
+                      {% endfor %}
+                    {% else %}
+                      <span class="text-muted">No winners determined.</span>
+                    {% endif %}
+                  </div>
+                </div>
 
-                      <div
-                        id="seatCollapse{{ motion.id }}_{{ seat.seat_number }}"
-                        class="accordion-collapse collapse"
-                        aria-labelledby="seatHeading{{ motion.id }}_{{ seat.seat_number }}"
-                        data-bs-parent="#seatsAccordion{{ motion.id }}"
+                {% if pref.informal_ballots %}
+                  <div class="mb-3">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                      <i class="bi bi-exclamation-triangle text-warning"></i>
+                      <h4 class="h6 mb-0">Informal ballots</h4>
+                    </div>
+                    <div class="table-responsive">
+                      <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light">
+                          <tr>
+                            <th>Voter</th>
+                            <th>Reason</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for entry in pref.informal_ballots %}
+                            <tr>
+                              <td class="fw-semibold">{{ entry.voter.name }}</td>
+                              <td class="text-muted">{{ entry.reason }}</td>
+                            </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                {% endif %}
+
+                <div class="accordion results-accordion" id="stvAccordion{{ motion.id }}">
+                  <div class="accordion-item border rounded-3 mb-2 overflow-hidden">
+                    <h2 class="accordion-header" id="stvHeading{{ motion.id }}">
+                      <button
+                        class="accordion-button collapsed"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#stvCollapse{{ motion.id }}"
+                        aria-expanded="false"
+                        aria-controls="stvCollapse{{ motion.id }}"
                       >
-                        <div class="accordion-body">
-
-                          <div class="table-responsive">
-                            <table class="table table-sm align-middle mb-3">
-                              <thead class="table-light">
-                                <tr>
-                                  <th style="width: 90px;">Round</th>
-                                  <th>Candidate</th>
-                                  <th style="width: 120px;" class="text-end">Votes</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {% for round in seat.rounds %}
-                                  {% for row in round.counts %}
-                                    <tr>
-                                      <td class="text-muted fw-semibold">#{{ round.round_number }}</td>
-                                      <td>
-                                        <span class="fw-semibold">{{ row.option.text }}</span>
-                                        {% if row.option.id == seat.winner.id %}
-                                          <span class="badge text-bg-success ms-2">Elected</span>
-                                        {% endif %}
-                                      </td>
-                                      <td class="text-end fw-semibold">{{ row.count }}</td>
-                                    </tr>
-                                  {% endfor %}
-                                {% endfor %}
-                              </tbody>
-                            </table>
-                          </div>
-
-                          {% if seat.round_logs %}
-                            <div class="mt-3">
-                              <div class="d-flex align-items-center gap-2 mb-2">
-                                <i class="bi bi-journal-text text-muted"></i>
-                                <h4 class="h6 mb-0">Round-by-round summary</h4>
-                              </div>
-
-                              <ol class="mb-0">
-                                {% for round_log in seat.round_logs %}
-                                  <li class="mb-2">
-                                    <div class="p-3 rounded-3 bg-light border">
-                                      {% for line in round_log %}
-                                        <div class="small">{{ line }}</div>
-                                      {% endfor %}
-                                    </div>
-                                  </li>
-                                {% endfor %}
-                              </ol>
-                            </div>
-                          {% endif %}
-
+                        <div class="d-flex align-items-center justify-content-between w-100 pe-2">
+                          <div class="fw-semibold">STV count detail</div>
+                          <span class="badge text-bg-light border">
+                            {{ pref.rounds|length }} rounds
+                          </span>
                         </div>
+                      </button>
+                    </h2>
+
+                    <div
+                      id="stvCollapse{{ motion.id }}"
+                      class="accordion-collapse collapse"
+                      aria-labelledby="stvHeading{{ motion.id }}"
+                      data-bs-parent="#stvAccordion{{ motion.id }}"
+                    >
+                      <div class="accordion-body">
+                        <div class="table-responsive mb-3">
+                          <table class="table table-sm align-middle mb-0">
+                            <thead class="table-light">
+                              <tr>
+                                <th style="width: 90px;">Round</th>
+                                <th>Candidate</th>
+                                <th style="width: 120px;">Status</th>
+                                <th style="width: 120px;" class="text-end">Weighted tally</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {% for round in pref.rounds %}
+                                {% for row in round.counts %}
+                                  <tr>
+                                    <td class="text-muted fw-semibold">#{{ round.round_number }}</td>
+                                    <td class="fw-semibold">{{ row.option.text }}</td>
+                                    <td>
+                                      {% if row.status == 'elected' %}
+                                        <span class="badge text-bg-success">Elected</span>
+                                      {% elif row.status == 'eliminated' %}
+                                        <span class="badge text-bg-danger">Eliminated</span>
+                                      {% else %}
+                                        <span class="badge text-bg-light border">Continuing</span>
+                                      {% endif %}
+                                    </td>
+                                    <td class="text-end fw-semibold">{{ row.count }}</td>
+                                  </tr>
+                                {% endfor %}
+                              {% endfor %}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {% if pref.round_logs %}
+                          <div class="mt-3">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                              <i class="bi bi-journal-text text-muted"></i>
+                              <h4 class="h6 mb-0">Count log</h4>
+                            </div>
+                            <div class="p-3 rounded-3 bg-light border">
+                              {% for line in pref.round_logs %}
+                                <div class="small">{{ line }}</div>
+                              {% endfor %}
+                            </div>
+                          </div>
+                        {% endif %}
                       </div>
                     </div>
-                  {% endfor %}
+                  </div>
                 </div>
 
               {% elif item.result_type == "FPTP" %}

@@ -30,8 +30,8 @@ def test_yes_no_tally(db_session):
     db_session.add_all([option_a, option_b, option_c])
     db_session.flush()
 
-    voter_1 = Voter(meeting_id=meeting.id, name="V1", code="CODE0001")
-    voter_2 = Voter(meeting_id=meeting.id, name="V2", code="CODE0002")
+    voter_1 = Voter(meeting_id=meeting.id, student_id="520000001", name="V1", code="CODE0001")
+    voter_2 = Voter(meeting_id=meeting.id, student_id="520000002", name="V2", code="CODE0002")
     db_session.add_all([voter_1, voter_2])
     db_session.flush()
 
@@ -90,8 +90,8 @@ def test_yes_no_tally_fails(db_session):
     db_session.add_all([option_a, option_b, option_c])
     db_session.flush()
 
-    voter_1 = Voter(meeting_id=meeting.id, name="V1", code="CODE0001")
-    voter_2 = Voter(meeting_id=meeting.id, name="V2", code="CODE0002")
+    voter_1 = Voter(meeting_id=meeting.id, student_id="520000001", name="V1", code="CODE0001")
+    voter_2 = Voter(meeting_id=meeting.id, student_id="520000002", name="V2", code="CODE0002")
     db_session.add_all([voter_1, voter_2])
     db_session.flush()
 
@@ -149,8 +149,8 @@ def test_yes_no_tally_nodecision(db_session):
     db_session.add_all([option_a, option_b, option_c])
     db_session.flush()
 
-    voter_1 = Voter(meeting_id=meeting.id, name="V1", code="CODE0001")
-    voter_2 = Voter(meeting_id=meeting.id, name="V2", code="CODE0002")
+    voter_1 = Voter(meeting_id=meeting.id, student_id="520000001", name="V1", code="CODE0001")
+    voter_2 = Voter(meeting_id=meeting.id, student_id="520000002", name="V2", code="CODE0002")
     db_session.add_all([voter_1, voter_2])
     db_session.flush()
 

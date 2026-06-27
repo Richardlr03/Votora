@@ -6,7 +6,7 @@ from app.routes.admin_common import ensure_meeting_owner
 from app.services.voting import (
     tally_candidate_election,
     tally_cumulative_votes,
-    tally_preference_sequential_irv,
+    tally_preference_stv,
     tally_score_votes,
     tally_yes_no_abstain,
 )
@@ -22,7 +22,7 @@ def register_admin_result_routes(app):
 
         for motion in meeting.motions:
             if motion.type == "PREFERENCE":
-                pref_result = tally_preference_sequential_irv(motion)
+                pref_result = tally_preference_stv(motion)
                 results.append(
                     {
                         "motion": motion,

@@ -1,6 +1,39 @@
+# Virtual environments
 venv/
+.venv/
+env/
+
+# Python bytecode
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+
+# Flask / local data
 instance/
+*.db
+*.sqlite3
 app.db
+
+# Environment / secrets
 .env
+.env.*
+
+# Testing & coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.pytest-tmp/
+.tmp/
+pytest-cache-files-*/
+
+# Python tooling caches
+.mypy_cache/
+.ruff_cache/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

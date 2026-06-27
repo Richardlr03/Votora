@@ -59,28 +59,32 @@
             </h2>
             <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#votingAccordion">
                 <div class="accordion-body bg-light-subtle">
-                    <p class="small text-muted mb-3">Uses a <strong>Sequential Instant Runoff (IRV)</strong> system to ensure every winner has broad support.</p>
+                    <p class="small text-muted mb-3">Uses the <strong>Single Transferable Vote (STV)</strong> system with the Droop quota so multiple winners can be elected in one count.</p>
                     
-                    <h6 class="fw-bold small">The Round-by-Round Process:</h6>
-                    <ol class="small ps-3">
-                        <li class="mb-2"><strong>Initial Count:</strong> The system tallies every voter's #1 preference.</li>
-                        <li class="mb-2"><strong>Majority Check:</strong> If a candidate has more than 50% of the active votes, they are elected.</li>
-                        <li class="mb-2"><strong>Elimination:</strong> If no majority exists, the candidate with the fewest votes is removed. Candidates with zero votes are automatically removed first to streamline the count.</li>
-                        <li class="mb-2"><strong>Redistribution:</strong> Ballots belonging to the eliminated candidate are transferred to the voter's <em>next available</em> preference.</li>
-                    </ol>
-
-                    <h6 class="fw-bold small mt-3">Detailed Tie-Break Logic:</h6>
-                    <p class="small text-muted mb-2">If two or more candidates are tied for last place, the system resolves it in three stages:</p>
-                    <ul class="small ps-3">
-                        <li class="mb-2"><strong>Stage 1 (Restricted Audit):</strong> The system creates a mini-election using only the tied candidates to see who was ranked lower relative to one another.</li>
-                        <li class="mb-2"><strong>Stage 2 (Absolute Audit):</strong> If still tied, the system scans every ballot at each rank level sequentially (starting at 1st choice, then 2nd, then 3rd, etc.). The candidate who has the fewest total votes at the highest possible rank is eliminated. This ensures we exhaust all preference data before moving to a fallback.</li>
-                        <li><strong>Stage 3 (Stable Fallback):</strong> In the rare case of a perfect mathematical tie at all levels, a deterministic rule is applied to ensure a consistent result.</li>
+                    <h6 class="fw-bold small">Setup:</h6>
+                    <ul class="small ps-3 mb-3">
+                        <li class="mb-2"><strong>Valid ballot:</strong> Must include a first preference (rank 1). Partial rankings are allowed. Duplicate ranks or missing rank 1 make a ballot informal.</li>
+                        <li class="mb-2"><strong>Quota:</strong> floor(N ÷ (n + 1)) + 1, where N = valid ballots and n = seats.</li>
+                        <li><strong>Weighted votes:</strong> Each ballot starts at transfer value 1.0. Tallies are sums of transfer values, not simple head counts.</li>
                     </ul>
 
-                    
+                    <h6 class="fw-bold small">The Round-by-Round Process:</h6>
+                    <ol class="small ps-3">
+                        <li class="mb-2"><strong>Initial Count:</strong> Distribute all valid ballots to first preferences.</li>
+                        <li class="mb-2"><strong>Election:</strong> Any continuing candidate with tally ≥ quota is elected. Multiple candidates can be elected in the same round.</li>
+                        <li class="mb-2"><strong>Surplus transfer:</strong> For each elected candidate with surplus votes, redistribute ballots at a reduced transfer value: current value × (surplus ÷ tally). Process the largest surplus first, then re-check for further elections.</li>
+                        <li class="mb-2"><strong>Elimination:</strong> If no one reaches the quota, eliminate the lowest tally and transfer ballots at unchanged transfer value.</li>
+                        <li class="mb-2"><strong>Exhausted ballots:</strong> If no further continuing preferences remain, the ballot is set aside.</li>
+                    </ol>
 
-                    <h6 class="fw-bold small mt-3">For Multiple Winners:</h6>
-                    <p class="small mb-0">Once a seat is filled, that winner is removed from all ballots. Their original votes are transferred to the next listed preference, and the entire IRV process begins again from Round 1 to fill the next seat.</p>
+                    <h6 class="fw-bold small mt-3">Tie-Break Logic:</h6>
+                    <ul class="small ps-3">
+                        <li class="mb-2"><strong>Elimination tie:</strong> Compare earlier-round tallies; if still tied at every round, decide by lot.</li>
+                        <li><strong>Surplus order tie:</strong> Prefer the candidate with the larger tally at election; if still tied, decide by lot.</li>
+                    </ul>
+
+                    <h6 class="fw-bold small mt-3">When counting stops:</h6>
+                    <p class="small mb-0">All seats are filled, or the number of continuing candidates equals unfilled seats (all remaining are elected), or no further transfers are possible.</p>
                 </div>
             </div>
         </div>

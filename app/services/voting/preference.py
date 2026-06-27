@@ -1,304 +1,449 @@
-def build_ballots_for_motion(motion):
+import random
+from fractions import Fraction
+
+STATUS_CONTINUING = "continuing"
+STATUS_ELECTED = "elected"
+STATUS_ELIMINATED = "eliminated"
+
+
+def format_tally(value):
+    if isinstance(value, Fraction):
+        if value.denominator == 1:
+            return str(value.numerator)
+        return f"{float(value):.6f}".rstrip("0").rstrip(".")
+    return str(value)
+
+
+def parse_ballots_for_motion(motion):
     votes_by_voter = {}
     for vote in motion.preference_votes:
-        votes_by_voter.setdefault(vote.voter_id, []).append(vote)
-
-    ballots = []
-    for votes in votes_by_voter.values():
-        sorted_votes = sorted(votes, key=lambda v: v.preference_rank)
-        ballot = [v.option_id for v in sorted_votes]
-        if ballot:
-            ballots.append(ballot)
-
-    return ballots
-
-
-def irv_tie_break_loser(ballots, tied_candidates, options_by_id):
-    log = []
-    if not ballots:
-        return None, log
-
-    tied = set(tied_candidates)
-    if len(tied) <= 1:
-        return (next(iter(tied)) if tied else None), log
-
-    def names(cids):
-        return ", ".join(options_by_id[cid].text for cid in sorted(cids))
-
-    log.append(f"Tie-break among {names(tied)} using rankings restricted to tied candidates.")
-
-    while len(tied) > 1:
-        filtered_ballots = []
-        max_depth = 0
-        for ballot in ballots:
-            filtered = [cid for cid in ballot if cid in tied]
-            if filtered:
-                filtered_ballots.append(filtered)
-                if len(filtered) > max_depth:
-                    max_depth = len(filtered)
-
-        if not filtered_ballots or max_depth == 0:
-            log.append("No more useful preference information in restricted rankings.")
-            break
-
-        reduced = False
-        for level in range(1, max_depth + 1):
-            counts = {cid: 0 for cid in tied}
-            for filtered in filtered_ballots:
-                if len(filtered) >= level:
-                    counts[filtered[level - 1]] += 1
-
-            min_count = min(counts.values())
-            lowest = [cid for cid, value in counts.items() if value == min_count]
-
-            pretty_counts = ", ".join(
-                f"{options_by_id[cid].text}: {counts[cid]}" for cid in sorted(tied)
-            )
-            log.append(f"  At preference position {level} (restricted), counts: {pretty_counts}.")
-
-            if len(lowest) < len(tied):
-                if len(lowest) == 1:
-                    loser = lowest[0]
-                    log.append(
-                        f"  {options_by_id[loser].text} has the fewest appearances at this level "
-                        "and is eliminated by tie-break (restricted rankings)."
-                    )
-                    return loser, log
-
-                log.append(
-                    f"  Lowest group at this level is {{ {names(lowest)} }}, "
-                    "narrowing tie to this subset and restarting from top."
-                )
-                tied = set(lowest)
-                reduced = True
-                break
-
-        if not reduced:
-            log.append("Restricted rankings cannot narrow the tie further.")
-            break
-
-    if len(tied) == 1:
-        loser = next(iter(tied))
-        log.append(
-            f"Restricted rankings eventually identify {options_by_id[loser].text} "
-            "as the unique weakest candidate."
+        entry = votes_by_voter.setdefault(
+            vote.voter_id,
+            {"voter": vote.voter, "votes": []},
         )
-        return loser, log
+        entry["votes"].append(vote)
 
-    log.append(
-        "Falling back to original full rankings to break remaining tie among "
-        f"{names(tied)}."
-    )
+    valid_ballots = []
+    informal_ballots = []
+    valid_option_ids = {option.id for option in motion.options}
 
-    all_max_depth = max((len(ballot) for ballot in ballots), default=0)
+    for data in votes_by_voter.values():
+        voter = data["voter"]
+        votes = data["votes"]
 
-    while len(tied) > 1 and all_max_depth > 0:
-        reduced = False
-
-        for level in range(1, all_max_depth + 1):
-            counts = {cid: 0 for cid in tied}
-            for ballot in ballots:
-                if len(ballot) >= level:
-                    candidate = ballot[level - 1]
-                    if candidate in tied:
-                        counts[candidate] += 1
-
-            if all(value == 0 for value in counts.values()):
-                continue
-
-            min_count = min(counts.values())
-            lowest = [cid for cid, value in counts.items() if value == min_count]
-            pretty_counts = ", ".join(
-                f"{options_by_id[cid].text}: {counts[cid]}" for cid in sorted(tied)
-            )
-            log.append(f"  At absolute ballot position {level}, counts: {pretty_counts}.")
-
-            if len(lowest) < len(tied):
-                if len(lowest) == 1:
-                    loser = lowest[0]
-                    log.append(
-                        f"  {options_by_id[loser].text} is uniquely weakest at this position "
-                        "and is eliminated by fallback tie-break."
-                    )
-                    return loser, log
-
-                log.append(
-                    f"  Lowest group is {{ {names(lowest)} }}, "
-                    "narrowing tie to this subset and restarting from top."
-                )
-                tied = set(lowest)
-                reduced = True
-                break
-
-        if not reduced:
-            log.append("Original rankings also cannot narrow the tie further.")
-            break
-
-    if len(tied) == 1:
-        loser = next(iter(tied))
-        log.append(
-            f"After considering original rankings, {options_by_id[loser].text} "
-            "is the unique weakest candidate."
-        )
-        return loser, log
-
-    log.append(
-        "All deeper preference methods failed to break the tie; leaving final decision "
-        "to deterministic fallback in caller."
-    )
-    return None, log
-
-
-def irv_single_winner(ballots, active_candidates, options_by_id):
-    active = set(active_candidates)
-    rounds = []
-    round_logs = []
-
-    def name(cid):
-        return options_by_id[cid].text
-
-    while active:
-        if len(active) == 1:
-            (only,) = active
-            round_logs.append([f"{name(only)} is the only remaining candidate and is elected."])
-            return only, rounds, round_logs
-
-        counts = {cid: 0 for cid in active}
-        for ballot in ballots:
-            for option_id in ballot:
-                if option_id in active:
-                    counts[option_id] += 1
-                    break
-
-        rounds.append(counts.copy())
-        round_number = len(rounds)
-        total_valid = sum(counts.values())
-
-        base_log = [
-            "Round {}: first-preference counts {}".format(
-                round_number,
-                ", ".join(f"{name(cid)} = {counts[cid]}" for cid in sorted(active)),
-            ),
-            f"Total valid ballots counted this round: {total_valid}.",
-        ]
-
-        if total_valid == 0:
-            base_log.append("No more usable ballots; no winner can be determined.")
-            round_logs.append(base_log)
-            return None, rounds, round_logs
-
-        winner_id = max(counts, key=counts.get)
-        if counts[winner_id] > total_valid / 2:
-            base_log.append(f"{name(winner_id)} has a majority (>50%) and is elected as winner.")
-            round_logs.append(base_log)
-            return winner_id, rounds, round_logs
-
-        zero_candidates = [cid for cid, value in counts.items() if value == 0]
-        non_zero_candidates = [cid for cid, value in counts.items() if value > 0]
-
-        if zero_candidates and non_zero_candidates:
-            if len(zero_candidates) == 1:
-                zero_name = name(zero_candidates[0])
-                base_log.append(
-                    f"{zero_name} has 0 first-preference votes and is eliminated automatically."
-                )
-            else:
-                zero_names = ", ".join(name(cid) for cid in sorted(zero_candidates))
-                base_log.append(
-                    "The following candidates have 0 first-preference votes and are "
-                    f"all eliminated automatically: {zero_names}."
-                )
-
-            for candidate in zero_candidates:
-                active.remove(candidate)
-
-            round_logs.append(base_log)
-            continue
-
-        min_votes = min(counts.values())
-        lowest = [cid for cid, value in counts.items() if value == min_votes]
-
-        if len(lowest) == 1:
-            loser = lowest[0]
-            base_log.append(
-                f"No majority. {name(loser)} has the fewest first-preference votes "
-                f"({min_votes}) and is eliminated."
-            )
-        else:
-            tied_names = ", ".join(name(cid) for cid in sorted(lowest))
-            base_log.append(
-                f"No majority. Tie for lowest between: {tied_names}. "
-                "Applying deeper preference tie-break."
-            )
-            tie_loser, tie_log = irv_tie_break_loser(ballots, lowest, options_by_id)
-            base_log.extend(tie_log)
-            if tie_loser is None:
-                tie_loser = min(lowest)
-                base_log.append(
-                    "Deep preference tie-break cannot distinguish; "
-                    f"falling back to deterministic rule and eliminating {name(tie_loser)}."
-                )
-            else:
-                base_log.append(f"Result of tie-break: {name(tie_loser)} is eliminated.")
-            loser = tie_loser
-
-        active.remove(loser)
-        round_logs.append(base_log)
-
-    round_logs.append(["All candidates eliminated; no winner determined."])
-    return None, rounds, round_logs
-
-
-def tally_preference_sequential_irv(motion):
-    ballots = build_ballots_for_motion(motion)
-    options_by_id = {option.id: option for option in motion.options}
-    all_candidate_ids = set(options_by_id.keys())
-
-    num_seats = motion.num_winners or 1
-    winner_ids = []
-    seats_info = []
-
-    for seat_index in range(num_seats):
-        active_candidates = all_candidate_ids - set(winner_ids)
-        if not active_candidates:
-            break
-
-        winner_id, rounds_raw, round_logs = irv_single_winner(
-            ballots, active_candidates, options_by_id
-        )
-        if winner_id is None:
-            break
-
-        winner_ids.append(winner_id)
-        rounds_info = []
-        for index, counts in enumerate(rounds_raw):
-            counts_list = []
-            for candidate_id, count in sorted(counts.items()):
-                counts_list.append(
-                    {"option": options_by_id[candidate_id], "count": count}
-                )
-            rounds_info.append(
+        if not votes:
+            informal_ballots.append(
                 {
-                    "round_number": index + 1,
-                    "counts": counts_list,
-                    "total": sum(counts.values()),
+                    "voter": voter,
+                    "reason": "Blank ballot (no preferences submitted).",
                 }
             )
+            continue
 
-        seats_info.append(
+        ranked = [(vote.preference_rank, vote.option_id) for vote in votes]
+
+        if not any(rank == 1 for rank, _ in ranked):
+            informal_ballots.append(
+                {
+                    "voter": voter,
+                    "reason": "Missing first preference (no option ranked 1).",
+                }
+            )
+            continue
+
+        ranks = [rank for rank, _ in ranked]
+        if any(rank <= 0 for rank in ranks):
+            informal_ballots.append(
+                {
+                    "voter": voter,
+                    "reason": "Invalid preference rank (must be positive).",
+                }
+            )
+            continue
+
+        if len(ranks) != len(set(ranks)):
+            informal_ballots.append(
+                {
+                    "voter": voter,
+                    "reason": "Duplicate preference ranks.",
+                }
+            )
+            continue
+
+        sorted_preferences = [
+            option_id
+            for _, option_id in sorted(ranked, key=lambda item: item[0])
+            if option_id in valid_option_ids
+        ]
+
+        if not sorted_preferences:
+            informal_ballots.append(
+                {
+                    "voter": voter,
+                    "reason": "Blank ballot (no valid options ranked).",
+                }
+            )
+            continue
+
+        valid_ballots.append(
             {
-                "seat_number": seat_index + 1,
-                "winner": options_by_id[winner_id],
-                "rounds": rounds_info,
-                "round_logs": round_logs,
+                "voter": voter,
+                "preferences": sorted_preferences,
             }
         )
 
-    winners = [options_by_id[candidate_id] for candidate_id in winner_ids]
+    return valid_ballots, informal_ballots
+
+
+def build_ballots_for_motion(motion):
+    valid_ballots, _informal_ballots = parse_ballots_for_motion(motion)
+    return [ballot["preferences"] for ballot in valid_ballots]
+
+
+class _STVBallot:
+    __slots__ = ("preferences", "transfer_value", "active_preference", "exhausted")
+
+    def __init__(self, preferences):
+        self.preferences = preferences
+        self.transfer_value = Fraction(1, 1)
+        self.active_preference = 0
+        self.exhausted = False
+
+
+class _CandidateState:
+    __slots__ = (
+        "option_id",
+        "status",
+        "pile",
+        "tally_history",
+        "elected_round",
+        "eliminated_round",
+    )
+
+    def __init__(self, option_id):
+        self.option_id = option_id
+        self.status = STATUS_CONTINUING
+        self.pile = []
+        self.tally_history = []
+        self.elected_round = None
+        self.eliminated_round = None
+
+
+def _dropp_quota(num_ballots, num_seats):
+    return num_ballots // (num_seats + 1) + 1
+
+
+def _compute_tallies(candidates):
+    tallies = {}
+    for candidate in candidates.values():
+        tally = Fraction(0, 1)
+        for ballot in candidate.pile:
+            tally += ballot.transfer_value
+        tallies[candidate.option_id] = tally
+        candidate.tally_history.append(tally)
+    return tallies
+
+
+def _next_continuing(ballot, candidates):
+    while ballot.active_preference < len(ballot.preferences):
+        option_id = ballot.preferences[ballot.active_preference]
+        ballot.active_preference += 1
+        candidate = candidates.get(option_id)
+        if candidate and candidate.status == STATUS_CONTINUING:
+            return candidate
+    return None
+
+
+def _snapshot_round(candidates, options_by_id, round_number, quota):
+    counts = []
+    for option_id in sorted(options_by_id):
+        candidate = candidates[option_id]
+        tally = candidate.tally_history[-1] if candidate.tally_history else Fraction(0, 1)
+        counts.append(
+            {
+                "option": options_by_id[option_id],
+                "count": format_tally(tally),
+                "count_value": tally,
+                "status": candidate.status,
+            }
+        )
+    return {
+        "round_number": round_number,
+        "counts": counts,
+        "quota": quota,
+        "total": sum(
+            (row["count_value"] for row in counts if row["status"] == STATUS_CONTINUING),
+            Fraction(0, 1),
+        ),
+    }
+
+
+def _pick_elimination_loser(tied_ids, candidates, options_by_id, round_logs, rng):
+    if len(tied_ids) == 1:
+        return tied_ids[0]
+
+    names = ", ".join(options_by_id[cid].text for cid in sorted(tied_ids))
+    max_history = max(len(candidates[cid].tally_history) for cid in tied_ids)
+
+    for index in range(max_history - 1, -1, -1):
+        values = {cid: candidates[cid].tally_history[index] for cid in tied_ids}
+        min_value = min(values.values())
+        lowest = [cid for cid, value in values.items() if value == min_value]
+        if len(lowest) == 1:
+            loser = lowest[0]
+            round_logs.append(
+                f"Tie for elimination among {names}. "
+                f"{options_by_id[loser].text} had the lower tally in an earlier round and is eliminated."
+            )
+            return loser
+
+    loser = rng.choice(sorted(tied_ids))
+    round_logs.append(
+        f"Tie for elimination among {names} could not be resolved by prior tallies. "
+        f"{options_by_id[loser].text} was selected by lot."
+    )
+    return loser
+
+
+def count_stv(valid_ballot_preferences, num_seats, options_by_id, rng=None):
+    rng = rng or random.Random()
+    round_logs = []
+    rounds = []
+
+    if num_seats < 1:
+        num_seats = 1
+
+    num_ballots = len(valid_ballot_preferences)
+    quota = _dropp_quota(num_ballots, num_seats) if num_ballots else 0
+
+    candidates = {
+        option_id: _CandidateState(option_id) for option_id in options_by_id
+    }
+    ballots = [_STVBallot(preferences) for preferences in valid_ballot_preferences]
+
+    for ballot in ballots:
+        option_id = ballot.preferences[0]
+        ballot.active_preference = 1
+        candidates[option_id].pile.append(ballot)
+
+    round_number = 0
+    seats_filled = 0
+    pending_surplus = []
+
+    if num_ballots == 0:
+        return {
+            "winners": [],
+            "quota": quota,
+            "rounds": rounds,
+            "round_logs": round_logs,
+            "seats_filled": 0,
+        }
+
+    round_logs.append(
+        f"Valid ballots (N) = {num_ballots}. Seats to fill (n) = {num_seats}. "
+        f"Droop quota = floor({num_ballots} / {num_seats + 1}) + 1 = {quota}."
+    )
+
+    while True:
+        round_number += 1
+        tallies = _compute_tallies(candidates)
+        rounds.append(_snapshot_round(candidates, options_by_id, round_number, quota))
+
+        if seats_filled == num_seats:
+            round_logs.append("All seats filled. Count complete.")
+            break
+
+        continuing = [
+            candidate
+            for candidate in candidates.values()
+            if candidate.status == STATUS_CONTINUING
+        ]
+        unfilled_seats = num_seats - seats_filled
+
+        if len(continuing) == unfilled_seats:
+            for candidate in continuing:
+                candidate.status = STATUS_ELECTED
+                candidate.elected_round = round_number
+                seats_filled += 1
+                round_logs.append(
+                    f"{options_by_id[candidate.option_id].text} is elected "
+                    f"(remaining continuing candidates equal unfilled seats)."
+                )
+            rounds.append(_snapshot_round(candidates, options_by_id, round_number, quota))
+            round_logs.append("All seats filled. Count complete.")
+            break
+
+        if pending_surplus:
+            pending_surplus.sort(
+                key=lambda item: (item["surplus"], item["tally_at_election"]),
+                reverse=True,
+            )
+            tied_groups = {}
+            for item in pending_surplus:
+                key = (item["surplus"], item["tally_at_election"])
+                tied_groups.setdefault(key, []).append(item)
+
+            next_group = tied_groups[max(tied_groups.keys())]
+            if len(next_group) > 1:
+                names = ", ".join(
+                    options_by_id[item["candidate"].option_id].text for item in next_group
+                )
+                rng.shuffle(next_group)
+                round_logs.append(
+                    f"Tie for surplus distribution order among {names}. Order determined by lot."
+                )
+
+            item = next_group[0]
+            pending_surplus.remove(item)
+            candidate = item["candidate"]
+            surplus = item["surplus"]
+            tally = item["tally_at_election"]
+            ratio = surplus / tally
+            pile = list(candidate.pile)
+            candidate.pile.clear()
+
+            for ballot in pile:
+                ballot.transfer_value *= ratio
+                next_candidate = _next_continuing(ballot, candidates)
+                if next_candidate is None:
+                    ballot.exhausted = True
+                else:
+                    next_candidate.pile.append(ballot)
+
+            round_logs.append(
+                f"Surplus from {options_by_id[candidate.option_id].text} distributed "
+                f"at transfer ratio {format_tally(ratio)}."
+            )
+            continue
+
+        newly_elected = [
+            candidate
+            for candidate in continuing
+            if tallies[candidate.option_id] >= quota
+        ]
+        newly_elected.sort(
+            key=lambda candidate: tallies[candidate.option_id],
+            reverse=True,
+        )
+
+        if newly_elected:
+            for candidate in newly_elected:
+                candidate.status = STATUS_ELECTED
+                candidate.elected_round = round_number
+                seats_filled += 1
+                tally = tallies[candidate.option_id]
+                surplus = tally - quota
+                round_logs.append(
+                    f"{options_by_id[candidate.option_id].text} is elected with "
+                    f"tally {format_tally(tally)} (quota {quota}, surplus {format_tally(surplus)})."
+                )
+                if surplus > 0:
+                    pending_surplus.append(
+                        {
+                            "candidate": candidate,
+                            "surplus": surplus,
+                            "tally_at_election": tally,
+                        }
+                    )
+                else:
+                    round_logs.append(
+                        f"No surplus to distribute for {options_by_id[candidate.option_id].text}."
+                    )
+
+            if seats_filled == num_seats:
+                round_logs.append("All seats filled. Count complete.")
+                break
+            continue
+
+        if not continuing:
+            round_logs.append("No continuing candidates remain. Count stopped.")
+            break
+
+        min_tally = min(tallies[candidate.option_id] for candidate in continuing)
+        lowest = [
+            candidate
+            for candidate in continuing
+            if tallies[candidate.option_id] == min_tally
+        ]
+        loser_id = _pick_elimination_loser(
+            [candidate.option_id for candidate in lowest],
+            candidates,
+            options_by_id,
+            round_logs,
+            rng,
+        )
+        loser = candidates[loser_id]
+        loser.status = STATUS_ELIMINATED
+        loser.eliminated_round = round_number
+
+        if len(lowest) == 1:
+            round_logs.append(
+                f"{options_by_id[loser_id].text} is eliminated with the lowest tally "
+                f"({format_tally(min_tally)})."
+            )
+        else:
+            tied_names = ", ".join(
+                options_by_id[candidate.option_id].text for candidate in lowest
+            )
+            round_logs.append(
+                f"Tie for lowest tally among {tied_names}. "
+                f"{options_by_id[loser_id].text} is eliminated."
+            )
+
+        pile = list(loser.pile)
+        loser.pile.clear()
+        for ballot in pile:
+            next_candidate = _next_continuing(ballot, candidates)
+            if next_candidate is None:
+                ballot.exhausted = True
+            else:
+                next_candidate.pile.append(ballot)
+
+    winner_ids = [
+        candidate.option_id
+        for candidate in candidates.values()
+        if candidate.status == STATUS_ELECTED
+    ]
+    winner_ids.sort(
+        key=lambda option_id: (
+            candidates[option_id].elected_round or 0,
+            option_id,
+        )
+    )
+    winners = [options_by_id[option_id] for option_id in winner_ids]
 
     return {
         "winners": winners,
-        "seats": seats_info,
-        "num_winners": num_seats,
-        "total_ballots": len(ballots),
+        "quota": quota,
+        "rounds": rounds,
+        "round_logs": round_logs,
+        "seats_filled": seats_filled,
     }
+
+
+def tally_preference_stv(motion, rng=None):
+    valid_ballots, informal_ballots = parse_ballots_for_motion(motion)
+    options_by_id = {option.id: option for option in motion.options}
+    num_seats = motion.num_winners or 1
+
+    stv_result = count_stv(
+        [ballot["preferences"] for ballot in valid_ballots],
+        num_seats,
+        options_by_id,
+        rng=rng,
+    )
+
+    return {
+        "winners": stv_result["winners"],
+        "num_winners": num_seats,
+        "total_ballots": len(valid_ballots),
+        "quota": stv_result["quota"],
+        "rounds": stv_result["rounds"],
+        "round_logs": stv_result["round_logs"],
+        "informal_ballots": informal_ballots,
+        "seats_filled": stv_result["seats_filled"],
+    }
+
+
+def tally_preference_sequential_irv(motion, rng=None):
+    return tally_preference_stv(motion, rng=rng)
