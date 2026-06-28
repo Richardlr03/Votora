@@ -1,4 +1,4 @@
-from flask import flash, redirect, render_template, request, send_from_directory, session, url_for
+from flask import Response, flash, redirect, render_template, request, send_from_directory, session, url_for
 
 from app.extensions import db
 from app.models import (
@@ -13,6 +13,15 @@ from app.models import (
 )
 from app.services.security import generate_voter_code
 
+PUBLIC_SITEMAP_ENDPOINTS = (
+    "index",
+    "login",
+    "signup",
+    "join_meeting",
+    "voting_systems",
+    "forgot_password",
+)
+
 
 def register_public_routes(app):
     @app.route("/favicon.ico")
@@ -22,6 +31,38 @@ def register_public_routes(app):
             "Votora_Favicon.png",
             mimetype="image/png",
         )
+
+    @app.route("/robots.txt")
+    def robots_txt():
+        sitemap_url = url_for("sitemap_xml", _external=True)
+        lines = [
+            "User-agent: *",
+            "Allow: /",
+            "Disallow: /admin/",
+            "Disallow: /vote/",
+            "Disallow: /join/meeting/",
+            "Disallow: /check-username",
+            "Disallow: /reset-password/",
+            "Disallow: /update_motion_status/",
+            "",
+            f"Sitemap: {sitemap_url}",
+        ]
+        return Response("\n".join(lines) + "\n", mimetype="text/plain")
+
+    @app.route("/sitemap.xml")
+    def sitemap_xml():
+        url_entries = []
+        for endpoint in PUBLIC_SITEMAP_ENDPOINTS:
+            loc = url_for(endpoint, _external=True)
+            url_entries.append(f"  <url><loc>{loc}</loc></url>")
+
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+            + "\n".join(url_entries)
+            + "\n</urlset>\n"
+        )
+        return Response(xml, mimetype="application/xml")
 
     @app.route("/")
     def index():
