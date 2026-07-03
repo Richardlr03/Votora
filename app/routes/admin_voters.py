@@ -25,8 +25,9 @@ def register_admin_voter_routes(app):
         if request.method == "POST":
             student_id = (request.form.get("student_id") or "").strip()
             name = (request.form.get("name") or "").strip()
+            member_id_label = meeting.member_id_label
             if not student_id:
-                error = {"ok": False, "error": "Student ID is required."}
+                error = {"ok": False, "error": f"{member_id_label} is required."}
                 if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                     return error, 400
                 flash(error["error"], "error")
@@ -45,7 +46,7 @@ def register_admin_voter_routes(app):
             if existing_voter:
                 error = {
                     "ok": False,
-                    "error": "Voter with the Stdudent ID has already joined",
+                    "error": f"Voter with this {member_id_label.lower()} has already joined.",
                 }
                 if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                     return error, 400
@@ -83,11 +84,12 @@ def register_admin_voter_routes(app):
     def update_user(voter_id):
         voter = Voter.query.get_or_404(voter_id)
         ensure_meeting_owner(voter.meeting)
+        member_id_label = voter.meeting.member_id_label
         new_student_id = (request.form.get("student_id") or "").strip()
         new_name = (request.form.get("name") or "").strip()
 
         if not new_student_id:
-            return jsonify({"error": "Student ID is required"}), 400
+            return jsonify({"error": f"{member_id_label} is required"}), 400
 
         if not new_name:
             return jsonify({"error": "Voter name is required"}), 400
@@ -98,7 +100,9 @@ def register_admin_voter_routes(app):
             Voter.id != voter.id,
         ).first()
         if existing_voter:
-            return jsonify({"error": "Student ID has already joined this meeting"}), 400
+            return jsonify(
+                {"error": f"{member_id_label} has already joined this meeting"}
+            ), 400
 
         try:
             voter.student_id = new_student_id

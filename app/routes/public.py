@@ -101,11 +101,12 @@ def register_public_routes(app):
         if request.method == "POST":
             form_student_id = (request.form.get("student_id") or "").strip().upper()
             form_name = (request.form.get("name") or "").strip()
+            member_id_label = meeting.member_id_label
 
             if not meeting.registration_open:
                 form_error = "Registration is closed for this meeting."
             elif not form_student_id:
-                form_error = "Student ID is required."
+                form_error = f"{member_id_label} is required."
             elif not form_name:
                 form_error = "Full name is required."
             else:
@@ -113,7 +114,7 @@ def register_public_routes(app):
                     meeting_id=meeting.id, student_id=form_student_id
                 ).first()
                 if existing_voter:
-                    form_error = "This student ID has already joined the meeting."
+                    form_error = f"This {member_id_label.lower()} has already joined the meeting."
                 else:
                     voter = Voter(
                         meeting_id=meeting.id,

@@ -410,7 +410,7 @@
                       <div>
                         <div class="fw-semibold">{{ voter.name }}</div>
                         <div class="text-muted small">
-                          SID:
+                          {{ meeting.member_id_label }}:
                           <span class="font-monospace">{{ voter.student_id }}</span>
                         </div>
                       </div>
@@ -630,7 +630,7 @@
             <div class="alert alert-danger d-none" id="addVoterError" role="alert"></div>
 
             <div class="mb-3">
-              <label for="voterStudentId" class="form-label">Student ID</label>
+              <label for="voterStudentId" class="form-label">{{ meeting.member_id_label }}</label>
               <input type="text" class="form-control" id="voterStudentId" name="student_id" required>
             </div>
 
@@ -661,6 +661,25 @@
 
           <div class="small text-muted mb-3">
             Scanning this QR code opens the meeting check-in page for {{ meeting.title }}.
+            Voters will be asked for their {{ meeting.member_id_label|lower }} and full name.
+          </div>
+
+          <div class="text-start mb-3">
+            <label for="meetingMemberIdLabel" class="form-label small fw-semibold">
+              Check-in field label
+            </label>
+            <input
+              type="text"
+              class="form-control"
+              id="meetingMemberIdLabel"
+              name="member_id_label"
+              value="{{ meeting.member_id_label }}"
+              maxlength="100"
+              placeholder="e.g. Student ID, Employee number, Membership number"
+            >
+            <div class="form-text">
+              Shown to voters when they join via QR or link.
+            </div>
           </div>
 
           <div class="border rounded-4 bg-light p-3 mb-3 qr-preview-shell">
@@ -717,7 +736,7 @@
               <input type="text" class="form-control" id="editVoterName" name="name" required>
             </div>
             <div class="mb-3">
-              <label for="editVoterStudentId" class="form-label">Student ID</label>
+              <label for="editVoterStudentId" class="form-label">{{ meeting.member_id_label }}</label>
               <input type="text" class="form-control" id="editVoterStudentId" name="student_id" required>
             </div>
           </div>
@@ -1032,8 +1051,15 @@
         setQrState({ loading: true });
 
         try {
+          const formData = new FormData();
+          const memberIdLabelInput = document.getElementById("meetingMemberIdLabel");
+          if (memberIdLabelInput && memberIdLabelInput.value.trim()) {
+            formData.append("member_id_label", memberIdLabelInput.value.trim());
+          }
+
           const response = await fetch(`/admin/meetings/${meetingId}/join-token`, {
             method: "POST",
+            body: formData,
             headers: { "X-Requested-With": "XMLHttpRequest" },
           });
 
@@ -1047,6 +1073,9 @@
           }
 
           const data = await response.json();
+          if (memberIdLabelInput && data.member_id_label) {
+            memberIdLabelInput.value = data.member_id_label;
+          }
           qrImage.src = buildQrImageUrl(data.join_url);
           setQrState({
             loading: false,

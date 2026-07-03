@@ -61,6 +61,7 @@
                                         data-meeting-date="{{ m.meeting_date or '' }}"
                                         data-start-time="{{ m.start_time or '' }}"
                                         data-end-time="{{ m.end_time or '' }}"
+                                        data-member-id-label="{{ m.member_id_label }}"
                                         data-url="{{ url_for('update_meeting', meeting_id=m.id) }}"
                                         title="Edit">
                                     <i class="bi bi-pencil"></i>
@@ -142,6 +143,7 @@
                                     data-meeting-date="{{ m.meeting_date or '' }}"
                                     data-start-time="{{ m.start_time or '' }}"
                                     data-end-time="{{ m.end_time or '' }}"
+                                    data-member-id-label="{{ m.member_id_label }}"
                                     data-url="{{ url_for('update_meeting', meeting_id=m.id) }}">
                                 Edit
                             </button>
@@ -210,6 +212,18 @@
                             <input type="time" class="form-control" name="end_time">
                         </div>
                     </div>
+                    <div class="mt-3">
+                        <label class="form-label small fw-bold">Check-in field label</label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            name="member_id_label"
+                            value="Member ID"
+                            maxlength="100"
+                            placeholder="e.g. Student ID, Employee number"
+                        >
+                        <div class="form-text">What voters enter when joining via QR or link.</div>
+                    </div>
                 </div>
                 <div class="modal-footer border-0">
                     <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancel</button>
@@ -251,6 +265,18 @@
                             <label class="form-label small fw-bold">End Time</label>
                             <input type="time" class="form-control" name="end_time" id="editEndTime">
                         </div>
+                    </div>
+                    <div class="mt-3">
+                        <label class="form-label small fw-bold" for="editMeetingMemberIdLabel">Check-in field label</label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            name="member_id_label"
+                            id="editMeetingMemberIdLabel"
+                            maxlength="100"
+                            placeholder="e.g. Student ID, Employee number"
+                        >
+                        <div class="form-text">What voters enter when joining via QR or link.</div>
                     </div>
                 </div>
                 <div class="modal-footer border-0">
@@ -430,6 +456,8 @@
                 document.getElementById("editMeetingDate").value = btn.dataset.meetingDate || "";
                 document.getElementById("editStartTime").value = btn.dataset.startTime || "";
                 document.getElementById("editEndTime").value = btn.dataset.endTime || "";
+                document.getElementById("editMeetingMemberIdLabel").value =
+                    btn.dataset.memberIdLabel || "Member ID";
                 editMeetingError.classList.add("d-none");
                 editMeetingModal.show();
             });

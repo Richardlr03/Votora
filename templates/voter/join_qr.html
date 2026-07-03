@@ -17,14 +17,14 @@
           {% if registration_open %}
             <form method="POST" class="d-grid gap-3 qr-join-form">
               <div>
-                <label for="studentId" class="form-label">Student ID</label>
+                <label for="memberId" class="form-label">{{ meeting.member_id_label }}</label>
                 <input
                   type="text"
                   class="form-control form-control-lg"
-                  id="studentId"
+                  id="memberId"
                   name="student_id"
                   value="{{ form_student_id }}"
-                  placeholder="e.g. 500123456"
+                  placeholder="Enter your {{ meeting.member_id_label|lower }}"
                   autocomplete="off"
                   required
                 >

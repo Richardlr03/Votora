@@ -15,8 +15,18 @@ from app.models import (
     Voter,
     YesNoVote,
 )
+from app.models.meeting import DEFAULT_MEMBER_ID_LABEL
 from app.routes.admin_common import ensure_meeting_owner, validate_meeting_schedule
 from app.services.security import generate_join_token
+
+
+def _normalize_member_id_label(raw_label):
+    label = (raw_label or "").strip()
+    if not label:
+        return None, "Check-in field label is required."
+    if len(label) > 100:
+        return None, "Check-in field label must be 100 characters or fewer."
+    return label, None
 
 
 def register_admin_meeting_routes(app):
@@ -46,9 +56,13 @@ def register_admin_meeting_routes(app):
         meeting_date_raw = (request.form.get("meeting_date") or "").strip()
         start_time_raw = (request.form.get("start_time") or "").strip()
         end_time_raw = (request.form.get("end_time") or "").strip()
+        member_id_label_raw = request.form.get("member_id_label")
 
         meeting_date, start_time, end_time, schedule_error = validate_meeting_schedule(
             meeting_date_raw, start_time_raw, end_time_raw
+        )
+        member_id_label, label_error = _normalize_member_id_label(
+            member_id_label_raw if member_id_label_raw is not None else DEFAULT_MEMBER_ID_LABEL
         )
 
         if not title:
@@ -65,6 +79,13 @@ def register_admin_meeting_routes(app):
             flash(error_message, "danger")
             return redirect(url_for("admin_meetings"))
 
+        if label_error:
+            error_message = label_error
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return {"ok": False, "error": error_message}, 400
+            flash(error_message, "danger")
+            return redirect(url_for("admin_meetings"))
+
         new_meeting = Meeting(
             title=title,
             description=description,
@@ -72,6 +93,7 @@ def register_admin_meeting_routes(app):
             start_time=start_time,
             end_time=end_time,
             admin_id=current_user.id,
+            member_id_label=member_id_label,
         )
         db.session.add(new_meeting)
         db.session.commit()
@@ -98,6 +120,7 @@ def register_admin_meeting_routes(app):
                         if new_meeting.end_time
                         else None
                     ),
+                    "member_id_label": new_meeting.member_id_label,
                 },
             }
 
@@ -120,6 +143,13 @@ def register_admin_meeting_routes(app):
         if not meeting.join_token:
             meeting.join_token = generate_join_token()
 
+        member_id_label_raw = request.form.get("member_id_label")
+        if member_id_label_raw is not None:
+            member_id_label, label_error = _normalize_member_id_label(member_id_label_raw)
+            if label_error:
+                return jsonify({"ok": False, "error": label_error}), 400
+            meeting.member_id_label = member_id_label
+
         meeting.registration_open = True
         db.session.commit()
 
@@ -136,6 +166,7 @@ def register_admin_meeting_routes(app):
                 "join_token": meeting.join_token,
                 "join_url": join_url,
                 "registration_open": meeting.registration_open,
+                "member_id_label": meeting.member_id_label,
             }
         )
 
@@ -219,10 +250,20 @@ def register_admin_meeting_routes(app):
         meeting_date_raw = (request.form.get("meeting_date") or "").strip()
         start_time_raw = (request.form.get("start_time") or "").strip()
         end_time_raw = (request.form.get("end_time") or "").strip()
+        member_id_label_raw = request.form.get("member_id_label")
 
         meeting_date, start_time, end_time, schedule_error = validate_meeting_schedule(
             meeting_date_raw, start_time_raw, end_time_raw
         )
+        member_id_label = meeting.member_id_label
+        if member_id_label_raw is not None:
+            member_id_label, label_error = _normalize_member_id_label(member_id_label_raw)
+            if label_error:
+                error_message = label_error
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return jsonify({"ok": False, "error": error_message}), 400
+                flash(error_message, "danger")
+                return redirect(url_for("admin_meetings"))
 
         if not title:
             error_message = "Title is required."
@@ -243,6 +284,7 @@ def register_admin_meeting_routes(app):
         meeting.meeting_date = meeting_date
         meeting.start_time = start_time
         meeting.end_time = end_time
+        meeting.member_id_label = member_id_label
 
         db.session.commit()
         flash("Meeting updated successfully.", "success")
@@ -269,6 +311,7 @@ def register_admin_meeting_routes(app):
                             if meeting.end_time
                             else None
                         ),
+                        "member_id_label": meeting.member_id_label,
                     },
                 }
             )

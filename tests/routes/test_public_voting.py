@@ -22,8 +22,25 @@ def test_qr_join_page_renders_for_open_meeting(client, db_session):
     assert response.status_code == 200
     html = response.get_data(as_text=True)
     assert "QR Join Meeting" in html
-    assert "Student ID" in html
+    assert "Member ID" in html
     assert "Full name" in html
+
+
+def test_qr_join_page_renders_custom_member_id_label(client, db_session):
+    meeting = Meeting(
+        title="Custom Label Meeting",
+        join_token="join-token-custom",
+        registration_open=True,
+        member_id_label="Employee number",
+    )
+    db_session.add(meeting)
+    db_session.commit()
+
+    response = client.get("/join/meeting/join-token-custom")
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "Employee number" in html
 
 
 def test_qr_join_creates_voter_and_redirects_to_dashboard(client, db_session):
