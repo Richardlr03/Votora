@@ -11,6 +11,7 @@ from app.models import (
     Voter,
     YesNoVote,
 )
+from app.services.db_integrity import commit_session
 from app.services.security import generate_voter_code
 
 PUBLIC_SITEMAP_ENDPOINTS = (
@@ -123,12 +124,24 @@ def register_public_routes(app):
                         code=generate_voter_code(),
                     )
                     db.session.add(voter)
-                    db.session.commit()
+                    if commit_session(db.session):
+                        session["voter_id"] = voter.id
+                        session["voter_name"] = voter.name
+                        session["voter_code"] = voter.code
+                        return redirect(url_for("voter_dashboard", code=voter.code))
 
-                    session["voter_id"] = voter.id
-                    session["voter_name"] = voter.name
-                    session["voter_code"] = voter.code
-                    return redirect(url_for("voter_dashboard", code=voter.code))
+                    existing_voter = Voter.query.filter_by(
+                        meeting_id=meeting.id, student_id=form_student_id
+                    ).first()
+                    if existing_voter:
+                        form_error = (
+                            f"This {member_id_label.lower()} has already joined the meeting."
+                        )
+                    else:
+                        form_error = (
+                            "Could not complete check-in due to a concurrent request. "
+                            "Please try again."
+                        )
 
         return render_template(
             "voter/join_qr.html",
@@ -396,7 +409,7 @@ def register_public_routes(app):
                                 )
                             )
 
-            db.session.commit()
+            commit_session(db.session)
             flash("Your vote for this motion has been recorded.", "success")
             return redirect(url_for("voter_dashboard", code=voter.code))
 

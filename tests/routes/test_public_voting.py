@@ -1,4 +1,4 @@
-from app.models import Meeting, Voter
+from app.models import Meeting, Motion, Option, Voter
 
 
 def test_voter_dashboard_invalid_code_renders_invalid_page(client):
@@ -110,3 +110,92 @@ def test_qr_join_blocks_closed_registration(client, db_session):
     assert response.status_code == 200
     html = response.get_data(as_text=True)
     assert "Registration is closed for this meeting." in html
+
+
+def _failed_commit(session):
+    session.rollback()
+    return False
+
+
+def test_qr_join_handles_concurrent_integrity_error(client, db_session, monkeypatch):
+    meeting = Meeting(
+        title="Concurrent Join Meeting",
+        join_token="join-token-race",
+        registration_open=True,
+    )
+    db_session.add(meeting)
+    db_session.flush()
+
+    existing = Voter(
+        meeting_id=meeting.id,
+        student_id="500123456",
+        name="Existing User",
+        code="RACE1234",
+    )
+    db_session.add(existing)
+    db_session.commit()
+
+    monkeypatch.setattr("app.routes.public.commit_session", _failed_commit)
+
+    response = client.post(
+        "/join/meeting/join-token-race",
+        data={"student_id": "500123456", "name": "New User"},
+    )
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "already joined the meeting" in html
+
+
+def test_qr_join_integrity_error_without_existing_voter_shows_retry_message(
+    client, db_session, monkeypatch
+):
+    meeting = Meeting(
+        title="Retry Join Meeting",
+        join_token="join-token-retry",
+        registration_open=True,
+    )
+    db_session.add(meeting)
+    db_session.commit()
+
+    monkeypatch.setattr("app.routes.public.commit_session", _failed_commit)
+
+    response = client.post(
+        "/join/meeting/join-token-retry",
+        data={"student_id": "500999999", "name": "New User"},
+    )
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "Please try again" in html
+
+
+def test_vote_motion_handles_concurrent_integrity_error(client, db_session, monkeypatch):
+    meeting = Meeting(title="Vote Race Meeting")
+    db_session.add(meeting)
+    db_session.flush()
+
+    voter = Voter(
+        meeting_id=meeting.id,
+        student_id="500888888",
+        name="Vote Race Voter",
+        code="VOTERACE",
+    )
+    motion = Motion(meeting_id=meeting.id, title="Approve budget", type="YES_NO", status="OPEN")
+    db_session.add_all([voter, motion])
+    db_session.flush()
+
+    yes_option = Option(motion_id=motion.id, text="Yes")
+    no_option = Option(motion_id=motion.id, text="No")
+    db_session.add_all([yes_option, no_option])
+    db_session.commit()
+
+    monkeypatch.setattr("app.routes.public.commit_session", _failed_commit)
+
+    response = client.post(
+        f"/vote/{voter.code}/motion/{motion.id}",
+        data={"option": str(yes_option.id)},
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(f"/vote/{voter.code}")

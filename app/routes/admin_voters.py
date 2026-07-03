@@ -12,6 +12,7 @@ from app.models import (
     YesNoVote,
 )
 from app.routes.admin_common import ensure_meeting_owner
+from app.services.db_integrity import commit_session
 from app.services.security import generate_voter_code
 
 
@@ -60,7 +61,28 @@ def register_admin_voter_routes(app):
                 code=generate_voter_code(),
             )
             db.session.add(voter)
-            db.session.commit()
+            if not commit_session(db.session):
+                existing_voter = Voter.query.filter_by(
+                    meeting_id=meeting.id, student_id=student_id
+                ).first()
+                if existing_voter:
+                    error = {
+                        "ok": False,
+                        "error": (
+                            f"Voter with this {member_id_label.lower()} has already joined."
+                        ),
+                    }
+                else:
+                    error = {
+                        "ok": False,
+                        "error": (
+                            "Could not add voter due to a concurrent request. Please try again."
+                        ),
+                    }
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return error, 400
+                flash(error["error"], "error")
+                return redirect(url_for("meeting_detail", meeting_id=meeting.id))
 
             if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                 return {
@@ -107,7 +129,10 @@ def register_admin_voter_routes(app):
         try:
             voter.student_id = new_student_id
             voter.name = new_name
-            db.session.commit()
+            if not commit_session(db.session):
+                return jsonify(
+                    {"error": f"{member_id_label} has already joined this meeting"}
+                ), 400
             flash("Voter updated successfully.", "success")
             return jsonify({"success": True}), 200
         except Exception:
