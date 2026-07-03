@@ -3,6 +3,14 @@ from app.extensions import db
 
 class CumulativeVote(db.Model):
     __tablename__ = "cumulative_votes"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "voter_id",
+            "motion_id",
+            "option_id",
+            name="uq_cumulative_votes_voter_motion_option",
+        ),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     voter_id = db.Column(db.Integer, db.ForeignKey("voters.id"), nullable=False)
