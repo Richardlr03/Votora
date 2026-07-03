@@ -10,9 +10,13 @@
           <h2 class="h4 fw-bold mb-2">{{ meeting.title }}</h2>
           <div class="small text-uppercase fw-semibold text-muted mb-2">Meeting Check-In</div>
 
-          {% if form_error %}
-            <div class="alert alert-danger border-0 rounded-4">{{ form_error }}</div>
-          {% endif %}
+          {% with messages = get_flashed_messages(category_filter=["join_error"]) %}
+            {% if messages %}
+              {% for message in messages %}
+                <div class="alert alert-danger border-0 rounded-4">{{ message }}</div>
+              {% endfor %}
+            {% endif %}
+          {% endwith %}
 
           {% if registration_open %}
             <form method="POST" class="d-grid gap-3 qr-join-form">

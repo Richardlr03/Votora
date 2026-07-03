@@ -86,11 +86,43 @@ def test_qr_join_rejects_duplicate_student_id(client, db_session):
     response = client.post(
         "/join/meeting/join-token-dup",
         data={"student_id": "500123456", "name": "New User"},
+        follow_redirects=True,
     )
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)
     assert "already joined the meeting" in html
+
+
+def test_qr_join_error_clears_after_reload(client, db_session):
+    meeting = Meeting(
+        title="Reload Meeting",
+        join_token="join-token-reload",
+        registration_open=True,
+    )
+    db_session.add(meeting)
+    db_session.flush()
+
+    existing = Voter(
+        meeting_id=meeting.id,
+        student_id="500123456",
+        name="Existing User",
+        code="RELOAD01",
+    )
+    db_session.add(existing)
+    db_session.commit()
+
+    client.post(
+        "/join/meeting/join-token-reload",
+        data={"student_id": "500123456", "name": "New User"},
+        follow_redirects=True,
+    )
+
+    response = client.get("/join/meeting/join-token-reload")
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "already joined the meeting" not in html
 
 
 def test_qr_join_blocks_closed_registration(client, db_session):
@@ -105,6 +137,7 @@ def test_qr_join_blocks_closed_registration(client, db_session):
     response = client.post(
         "/join/meeting/join-token-closed",
         data={"student_id": "500123456", "name": "Taylor Smith"},
+        follow_redirects=True,
     )
 
     assert response.status_code == 200
@@ -140,6 +173,7 @@ def test_qr_join_handles_concurrent_integrity_error(client, db_session, monkeypa
     response = client.post(
         "/join/meeting/join-token-race",
         data={"student_id": "500123456", "name": "New User"},
+        follow_redirects=True,
     )
 
     assert response.status_code == 200
@@ -163,6 +197,7 @@ def test_qr_join_integrity_error_without_existing_voter_shows_retry_message(
     response = client.post(
         "/join/meeting/join-token-retry",
         data={"student_id": "500999999", "name": "New User"},
+        follow_redirects=True,
     )
 
     assert response.status_code == 200

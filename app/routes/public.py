@@ -23,6 +23,18 @@ PUBLIC_SITEMAP_ENDPOINTS = (
     "forgot_password",
 )
 
+JOIN_QR_FORM_SESSION_KEY = "join_qr_form"
+
+
+def _redirect_join_qr_error(token, error_message, student_id="", name=""):
+    flash(error_message, "join_error")
+    session[JOIN_QR_FORM_SESSION_KEY] = {
+        "token": token,
+        "student_id": student_id,
+        "name": name,
+    }
+    return redirect(url_for("join_meeting_by_token", token=token))
+
 
 def register_public_routes(app):
     @app.route("/favicon.ico")
@@ -97,7 +109,11 @@ def register_public_routes(app):
 
         form_student_id = ""
         form_name = ""
-        form_error = None
+
+        saved_form = session.pop(JOIN_QR_FORM_SESSION_KEY, None)
+        if saved_form and saved_form.get("token") == token:
+            form_student_id = saved_form.get("student_id", "")
+            form_name = saved_form.get("name", "")
 
         if request.method == "POST":
             form_student_id = (request.form.get("student_id") or "").strip().upper()
@@ -105,49 +121,73 @@ def register_public_routes(app):
             member_id_label = meeting.member_id_label
 
             if not meeting.registration_open:
-                form_error = "Registration is closed for this meeting."
-            elif not form_student_id:
-                form_error = f"{member_id_label} is required."
-            elif not form_name:
-                form_error = "Full name is required."
-            else:
-                existing_voter = Voter.query.filter_by(
-                    meeting_id=meeting.id, student_id=form_student_id
-                ).first()
-                if existing_voter:
-                    form_error = f"This {member_id_label.lower()} has already joined the meeting."
-                else:
-                    voter = Voter(
-                        meeting_id=meeting.id,
-                        student_id=form_student_id,
-                        name=form_name,
-                        code=generate_voter_code(),
-                    )
-                    db.session.add(voter)
-                    if commit_session(db.session):
-                        session["voter_id"] = voter.id
-                        session["voter_name"] = voter.name
-                        session["voter_code"] = voter.code
-                        return redirect(url_for("voter_dashboard", code=voter.code))
+                return _redirect_join_qr_error(
+                    token,
+                    "Registration is closed for this meeting.",
+                    form_student_id,
+                    form_name,
+                )
+            if not form_student_id:
+                return _redirect_join_qr_error(
+                    token,
+                    f"{member_id_label} is required.",
+                    form_student_id,
+                    form_name,
+                )
+            if not form_name:
+                return _redirect_join_qr_error(
+                    token,
+                    "Full name is required.",
+                    form_student_id,
+                    form_name,
+                )
 
-                    existing_voter = Voter.query.filter_by(
-                        meeting_id=meeting.id, student_id=form_student_id
-                    ).first()
-                    if existing_voter:
-                        form_error = (
-                            f"This {member_id_label.lower()} has already joined the meeting."
-                        )
-                    else:
-                        form_error = (
-                            "Could not complete check-in due to a concurrent request. "
-                            "Please try again."
-                        )
+            existing_voter = Voter.query.filter_by(
+                meeting_id=meeting.id, student_id=form_student_id
+            ).first()
+            if existing_voter:
+                return _redirect_join_qr_error(
+                    token,
+                    f"This {member_id_label.lower()} has already joined the meeting.",
+                    form_student_id,
+                    form_name,
+                )
+
+            voter = Voter(
+                meeting_id=meeting.id,
+                student_id=form_student_id,
+                name=form_name,
+                code=generate_voter_code(),
+            )
+            db.session.add(voter)
+            if commit_session(db.session):
+                session["voter_id"] = voter.id
+                session["voter_name"] = voter.name
+                session["voter_code"] = voter.code
+                return redirect(url_for("voter_dashboard", code=voter.code))
+
+            existing_voter = Voter.query.filter_by(
+                meeting_id=meeting.id, student_id=form_student_id
+            ).first()
+            if existing_voter:
+                return _redirect_join_qr_error(
+                    token,
+                    f"This {member_id_label.lower()} has already joined the meeting.",
+                    form_student_id,
+                    form_name,
+                )
+
+            return _redirect_join_qr_error(
+                token,
+                "Could not complete check-in due to a concurrent request. Please try again.",
+                form_student_id,
+                form_name,
+            )
 
         return render_template(
             "voter/join_qr.html",
             meeting=meeting,
             registration_open=meeting.registration_open,
-            form_error=form_error,
             form_student_id=form_student_id,
             form_name=form_name,
         )
