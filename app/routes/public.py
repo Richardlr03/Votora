@@ -27,6 +27,23 @@ PUBLIC_SITEMAP_ENDPOINTS = (
 JOIN_QR_FORM_SESSION_KEY = "join_qr_form"
 
 
+def _normalize_join_name(name):
+    return " ".join((name or "").split()).casefold()
+
+
+def _voter_name_matches(voter, submitted_name):
+    return _normalize_join_name(voter.name) == _normalize_join_name(submitted_name)
+
+
+def _login_voter(voter, welcome_back=False):
+    if welcome_back:
+        flash("Welcome back! Redirecting to your voting dashboard.", "success")
+    session["voter_id"] = voter.id
+    session["voter_name"] = voter.name
+    session["voter_code"] = voter.code
+    return redirect(url_for("voter_dashboard", code=voter.code))
+
+
 def _redirect_join_qr_error(token, error_message, student_id="", name=""):
     flash(error_message, "join_error")
     session[JOIN_QR_FORM_SESSION_KEY] = {
@@ -35,6 +52,19 @@ def _redirect_join_qr_error(token, error_message, student_id="", name=""):
         "name": name,
     }
     return redirect(url_for("join_meeting_by_token", token=token))
+
+
+def _handle_existing_voter_sign_in(
+    existing_voter, token, member_id_label, form_student_id, form_name
+):
+    if _voter_name_matches(existing_voter, form_name):
+        return _login_voter(existing_voter, welcome_back=True)
+    return _redirect_join_qr_error(
+        token,
+        f"This {member_id_label.lower()} has already joined the meeting.",
+        form_student_id,
+        form_name,
+    )
 
 
 def register_public_routes(app):
@@ -121,13 +151,6 @@ def register_public_routes(app):
             form_name = (request.form.get("name") or "").strip()
             member_id_label = meeting.member_id_label
 
-            if not meeting.registration_open:
-                return _redirect_join_qr_error(
-                    token,
-                    "Registration is closed for this meeting.",
-                    form_student_id,
-                    form_name,
-                )
             if not form_student_id:
                 return _redirect_join_qr_error(
                     token,
@@ -147,9 +170,18 @@ def register_public_routes(app):
                 meeting_id=meeting.id, student_id=form_student_id
             ).first()
             if existing_voter:
+                return _handle_existing_voter_sign_in(
+                    existing_voter,
+                    token,
+                    member_id_label,
+                    form_student_id,
+                    form_name,
+                )
+
+            if not meeting.registration_open:
                 return _redirect_join_qr_error(
                     token,
-                    f"This {member_id_label.lower()} has already joined the meeting.",
+                    "Registration is closed for this meeting.",
                     form_student_id,
                     form_name,
                 )
@@ -162,18 +194,16 @@ def register_public_routes(app):
             )
             db.session.add(voter)
             if commit_session(db.session):
-                session["voter_id"] = voter.id
-                session["voter_name"] = voter.name
-                session["voter_code"] = voter.code
-                return redirect(url_for("voter_dashboard", code=voter.code))
+                return _login_voter(voter)
 
             existing_voter = Voter.query.filter_by(
                 meeting_id=meeting.id, student_id=form_student_id
             ).first()
             if existing_voter:
-                return _redirect_join_qr_error(
+                return _handle_existing_voter_sign_in(
+                    existing_voter,
                     token,
-                    f"This {member_id_label.lower()} has already joined the meeting.",
+                    member_id_label,
                     form_student_id,
                     form_name,
                 )

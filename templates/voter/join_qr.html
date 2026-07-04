@@ -18,46 +18,52 @@
             {% endif %}
           {% endwith %}
 
-          {% if registration_open %}
-            <form method="POST" class="d-grid gap-3 qr-join-form" data-vp-lock-on-submit="Joining…">
-              <div>
-                <label for="memberId" class="form-label">{{ meeting.member_id_label }}</label>
-                <input
-                  type="text"
-                  class="form-control form-control-lg"
-                  id="memberId"
-                  name="student_id"
-                  value="{{ form_student_id }}"
-                  placeholder="Enter your {{ meeting.member_id_label|lower }}"
-                  autocomplete="off"
-                  required
-                >
+          {% if not registration_open %}
+            <div class="rounded-4 border p-3 mb-3 bg-light">
+              <div class="fw-semibold mb-1">Registration is closed for new voters.</div>
+              <div class="text-muted small">
+                Already joined? Enter your {{ meeting.member_id_label|lower }} and full name below to continue voting.
               </div>
-
-              <div>
-                <label for="fullName" class="form-label">Full name</label>
-                <input
-                  type="text"
-                  class="form-control form-control-lg"
-                  id="fullName"
-                  name="name"
-                  value="{{ form_name }}"
-                  placeholder="Enter your full name"
-                  autocomplete="name"
-                  required
-                >
-              </div>
-
-              <button type="submit" class="btn btn-primary btn-lg mt-2">
-                Continue to Voting
-              </button>
-            </form>
-          {% else %}
-            <div class="rounded-4 border p-4 bg-light">
-              <div class="fw-semibold mb-2">This invitation link is no longer accepting new voters.</div>
-              <div class="text-muted">Ask the meeting admin to reopen registration or generate a fresh QR code.</div>
             </div>
+          {% else %}
+            <p class="text-muted small mb-3">
+              Already joined? Enter your {{ meeting.member_id_label|lower }} and full name again to continue.
+            </p>
           {% endif %}
+
+          <form method="POST" class="d-grid gap-3 qr-join-form" data-vp-lock-on-submit="Joining…">
+            <div>
+              <label for="memberId" class="form-label">{{ meeting.member_id_label }}</label>
+              <input
+                type="text"
+                class="form-control form-control-lg"
+                id="memberId"
+                name="student_id"
+                value="{{ form_student_id }}"
+                placeholder="Enter your {{ meeting.member_id_label|lower }}"
+                autocomplete="off"
+                required
+              >
+            </div>
+
+            <div>
+              <label for="fullName" class="form-label">Full name</label>
+              <input
+                type="text"
+                class="form-control form-control-lg"
+                id="fullName"
+                name="name"
+                value="{{ form_name }}"
+                placeholder="Enter your full name"
+                autocomplete="name"
+                required
+              >
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg mt-2">
+              Continue to Voting
+            </button>
+          </form>
         </div>
       </div>
     </div>

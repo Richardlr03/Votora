@@ -94,6 +94,87 @@ def test_qr_join_rejects_duplicate_student_id(client, db_session):
     assert "already joined the meeting" in html
 
 
+def test_qr_join_welcome_back_when_member_id_and_name_match(client, db_session):
+    meeting = Meeting(
+        title="Welcome Back Meeting",
+        join_token="join-token-welcome",
+        registration_open=True,
+    )
+    db_session.add(meeting)
+    db_session.flush()
+
+    existing = Voter(
+        meeting_id=meeting.id,
+        student_id="500123456",
+        name="Taylor Smith",
+        code="WELCOME1",
+    )
+    db_session.add(existing)
+    db_session.commit()
+
+    response = client.post(
+        "/join/meeting/join-token-welcome",
+        data={"student_id": "500123456", "name": "Taylor Smith"},
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/vote/WELCOME1")
+
+
+def test_qr_join_welcome_back_ignores_name_case_and_spacing(client, db_session):
+    meeting = Meeting(
+        title="Case Insensitive Meeting",
+        join_token="join-token-case",
+        registration_open=True,
+    )
+    db_session.add(meeting)
+    db_session.flush()
+
+    existing = Voter(
+        meeting_id=meeting.id,
+        student_id="500123457",
+        name="Taylor Smith",
+        code="WELCOME2",
+    )
+    db_session.add(existing)
+    db_session.commit()
+
+    response = client.post(
+        "/join/meeting/join-token-case",
+        data={"student_id": "500123457", "name": "  taylor   smith "},
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/vote/WELCOME2")
+
+
+def test_qr_join_closed_registration_allows_returning_voter(client, db_session):
+    meeting = Meeting(
+        title="Closed Returning Meeting",
+        join_token="join-token-return",
+        registration_open=False,
+    )
+    db_session.add(meeting)
+    db_session.flush()
+
+    existing = Voter(
+        meeting_id=meeting.id,
+        student_id="500123458",
+        name="Taylor Smith",
+        code="RETURN01",
+    )
+    db_session.add(existing)
+    db_session.commit()
+
+    response = client.post(
+        "/join/meeting/join-token-return",
+        data={"student_id": "500123458", "name": "Taylor Smith"},
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/vote/RETURN01")
+
+
 def test_qr_join_error_clears_after_reload(client, db_session):
     meeting = Meeting(
         title="Reload Meeting",
@@ -143,6 +224,24 @@ def test_qr_join_blocks_closed_registration(client, db_session):
     assert response.status_code == 200
     html = response.get_data(as_text=True)
     assert "Registration is closed for this meeting." in html
+
+
+def test_qr_join_closed_registration_page_shows_returning_voter_form(client, db_session):
+    meeting = Meeting(
+        title="Closed Form Meeting",
+        join_token="join-token-closed-form",
+        registration_open=False,
+    )
+    db_session.add(meeting)
+    db_session.commit()
+
+    response = client.get("/join/meeting/join-token-closed-form")
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "Registration is closed for new voters." in html
+    assert "Already joined?" in html
+    assert 'name="student_id"' in html
 
 
 def _failed_commit(session):
