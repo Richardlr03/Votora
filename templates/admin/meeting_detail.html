@@ -1089,14 +1089,19 @@
       }
 
       function setVoterLoading(isLoading) {
+        voterForm.dataset.vpSubmitLocked = isLoading ? "true" : "false";
+        voterForm.classList.toggle("vp-form-locked", isLoading);
         voterSubmit.disabled = isLoading;
         voterSubmit.innerHTML = isLoading
-          ? '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving...'
+          ? '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Adding…'
           : "Add Voter";
       }
 
       voterForm.addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (voterForm.dataset.vpSubmitLocked === "true") {
+          return;
+        }
         setVoterLoading(true);
 
         const formData = new FormData(voterForm);
@@ -1138,6 +1143,8 @@
 
       voterModalEl.addEventListener("hidden.bs.modal", () => {
         voterForm.reset();
+        voterForm.dataset.vpSubmitLocked = "false";
+        voterForm.classList.remove("vp-form-locked");
         voterError.classList.add("d-none");
         setVoterLoading(false);
       });
@@ -1188,7 +1195,21 @@
       // Submit Edit
       document.getElementById('editVoterForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const formData = new FormData(e.target);
+        const editVoterForm = e.target;
+        if (editVoterForm.dataset.vpSubmitLocked === 'true') {
+          return;
+        }
+
+        const editVoterSubmit = document.getElementById('editVoterSubmit');
+        editVoterForm.dataset.vpSubmitLocked = 'true';
+        editVoterForm.classList.add('vp-form-locked');
+        if (editVoterSubmit) {
+          editVoterSubmit.disabled = true;
+          editVoterSubmit.innerHTML =
+            '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving…';
+        }
+
+        const formData = new FormData(editVoterForm);
         const url = `/admin/voter/${currentVoterId}/update`; 
         
         try {
@@ -1208,7 +1229,16 @@
             if (data && data.error) message = data.error;
           } catch (err) { /* ignore parse errors */ }
           alert(message);
-        } catch (err) { console.error(err); }
+        } catch (err) {
+          console.error(err);
+        } finally {
+          editVoterForm.dataset.vpSubmitLocked = 'false';
+          editVoterForm.classList.remove('vp-form-locked');
+          if (editVoterSubmit) {
+            editVoterSubmit.disabled = false;
+            editVoterSubmit.innerHTML = 'Save Changes';
+          }
+        }
       });
 
       // Open Delete Modal

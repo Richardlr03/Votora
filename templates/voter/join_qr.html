@@ -19,7 +19,7 @@
           {% endwith %}
 
           {% if registration_open %}
-            <form method="POST" class="d-grid gap-3 qr-join-form">
+            <form method="POST" class="d-grid gap-3 qr-join-form" data-vp-lock-on-submit="Joining…">
               <div>
                 <label for="memberId" class="form-label">{{ meeting.member_id_label }}</label>
                 <input

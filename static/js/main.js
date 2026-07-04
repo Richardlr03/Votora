@@ -1,8 +1,55 @@
 // Custom JS for Votora
 console.log("Votora loaded");
 
+function lockFormForSubmit(form, loadingText) {
+  if (form.dataset.vpSubmitLocked === "true") {
+    return false;
+  }
+
+  form.dataset.vpSubmitLocked = "true";
+  form.classList.add("vp-form-locked");
+
+  form.querySelectorAll("input, select, textarea").forEach(function (el) {
+    const type = (el.type || "").toLowerCase();
+    if (type === "submit" || type === "button" || type === "radio" || type === "checkbox") {
+      return;
+    }
+    if (el.tagName === "SELECT") {
+      return;
+    }
+    el.readOnly = true;
+  });
+
+  form.querySelectorAll('button[type="submit"], input[type="submit"]').forEach(function (btn) {
+    btn.disabled = true;
+    if (btn.tagName === "BUTTON") {
+      btn.dataset.vpOriginalHtml = btn.innerHTML;
+      btn.innerHTML =
+        '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>' +
+        loadingText;
+    } else {
+      btn.dataset.vpOriginalValue = btn.value;
+      btn.value = loadingText;
+    }
+  });
+
+  return true;
+}
+
 // Auto-dismiss Bootstrap alerts after 3 seconds
 document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll("[data-vp-lock-on-submit]").forEach(function (form) {
+    form.addEventListener("submit", function (event) {
+      if (form.dataset.vpSubmitLocked === "true") {
+        event.preventDefault();
+        return;
+      }
+
+      const loadingText = form.getAttribute("data-vp-lock-on-submit") || "Submitting…";
+      lockFormForSubmit(form, loadingText);
+    });
+  });
+
 	var alerts = document.querySelectorAll('.alert.alert-dismissible.show');
 	alerts.forEach(function (alert) {
 		setTimeout(function () {
