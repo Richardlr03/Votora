@@ -21,11 +21,22 @@ class Config:
 
     RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        "pool_pre_ping": True,
-        "connect_args": {
-            "ssl": {"ca": os.getenv("MYSQL_SSL_CA", "")}
-            if os.getenv("MYSQL_SSL_CA")
-            else {}
-        }
+    _mysql_connect_args = {
+        "connect_timeout": int(os.getenv("MYSQL_CONNECT_TIMEOUT", "10")),
     }
+    _mysql_ssl_ca = (os.getenv("MYSQL_SSL_CA") or "").strip()
+    if _mysql_ssl_ca:
+        _mysql_connect_args["ssl"] = {"ca": _mysql_ssl_ca}
+
+    _is_mysql = _database_url.startswith("mysql")
+    if _is_mysql:
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            "pool_pre_ping": True,
+            "pool_size": int(os.getenv("SQLALCHEMY_POOL_SIZE", "5")),
+            "max_overflow": int(os.getenv("SQLALCHEMY_MAX_OVERFLOW", "5")),
+            "pool_timeout": int(os.getenv("SQLALCHEMY_POOL_TIMEOUT", "30")),
+            "pool_recycle": int(os.getenv("SQLALCHEMY_POOL_RECYCLE", "280")),
+            "connect_args": _mysql_connect_args,
+        }
+    else:
+        SQLALCHEMY_ENGINE_OPTIONS = {}
