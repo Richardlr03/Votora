@@ -1,4 +1,4 @@
-from app.models import Meeting, Motion, Option, Voter
+from app.models import Meeting, Motion, Option, Voter, YesNoVote
 
 
 def test_voter_dashboard_invalid_code_renders_invalid_page(client):
@@ -234,3 +234,38 @@ def test_vote_motion_handles_concurrent_integrity_error(client, db_session, monk
 
     assert response.status_code == 302
     assert response.headers["Location"].endswith(f"/vote/{voter.code}")
+
+
+def test_yes_no_vote_upsert_last_choice_wins(client, db_session):
+    meeting = Meeting(title="Upsert Route Meeting")
+    db_session.add(meeting)
+    db_session.flush()
+
+    voter = Voter(
+        meeting_id=meeting.id,
+        student_id="610000002",
+        name="Route Upsert Voter",
+        code="UPSERT02",
+    )
+    motion = Motion(
+        meeting_id=meeting.id,
+        title="Approve budget",
+        type="YES_NO",
+        status="OPEN",
+    )
+    db_session.add_all([voter, motion])
+    db_session.flush()
+
+    yes_option = Option(motion_id=motion.id, text="Yes")
+    no_option = Option(motion_id=motion.id, text="No")
+    db_session.add_all([yes_option, no_option])
+    db_session.commit()
+
+    vote_url = f"/vote/{voter.code}/motion/{motion.id}"
+    client.post(vote_url, data={"option": str(yes_option.id)})
+    client.post(vote_url, data={"option": str(no_option.id)})
+
+    votes = YesNoVote.query.filter_by(voter_id=voter.id, motion_id=motion.id).all()
+    assert len(votes) == 1
+    assert votes[0].option_id == no_option.id
+

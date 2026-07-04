@@ -13,6 +13,7 @@ from app.models import (
 )
 from app.services.db_integrity import commit_session
 from app.services.security import generate_voter_code
+from app.services.voting.simple_vote import upsert_single_option_vote
 
 PUBLIC_SITEMAP_ENDPOINTS = (
     "index",
@@ -434,20 +435,13 @@ def register_public_routes(app):
 
                     if option_id_int is not None:
                         vote_model = CandidateVote if motion.type == "FPTP" else YesNoVote
-                        if simple_vote is None:
-                            simple_vote = vote_model.query.filter_by(
-                                voter_id=voter.id, motion_id=motion.id
-                            ).first()
-                        if simple_vote:
-                            simple_vote.option_id = option_id_int
-                        else:
-                            db.session.add(
-                                vote_model(
-                                    voter_id=voter.id,
-                                    motion_id=motion.id,
-                                    option_id=option_id_int,
-                                )
-                            )
+                        upsert_single_option_vote(
+                            db.session,
+                            vote_model,
+                            voter.id,
+                            motion.id,
+                            option_id_int,
+                        )
 
             commit_session(db.session)
             flash("Your vote for this motion has been recorded.", "success")
