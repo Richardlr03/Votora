@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Send Support Email | Votora{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-center" style="min-height: 70vh;">
+  <div class="card border-0 shadow-lg w-100" style="max-width: 640px; border-radius: 20px;">
+    <div class="card-body p-4 p-md-5">
+      <div class="mb-4">
+        <span class="badge text-bg-warning-subtle border text-dark mb-2">Developer mode</span>
+        <h1 class="h4 fw-bold mb-1">Send support email</h1>
+        <p class="text-muted small mb-0">
+          Send a message to a user from <strong>support@votora.me</strong> via Resend.
+        </p>
+      </div>
+
+      {% with messages = get_flashed_messages(category_filter=["support_error"]) %}
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-danger py-2 px-3 border-0 small mb-4 d-flex align-items-center">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i>
+              <div>{{ message }}</div>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" data-vp-lock-on-submit>
+        <div class="mb-3">
+          <label for="to_email" class="form-label small fw-semibold">To</label>
+          <input
+            type="email"
+            class="form-control"
+            id="to_email"
+            name="to_email"
+            value="{{ prefill_to }}"
+            placeholder="user@example.com"
+            required
+          >
+        </div>
+
+        <div class="mb-3">
+          <label for="subject" class="form-label small fw-semibold">Subject</label>
+          <input
+            type="text"
+            class="form-control"
+            id="subject"
+            name="subject"
+            value="Re: Your Votora feedback"
+            maxlength="200"
+            required
+          >
+        </div>
+
+        <div class="mb-4">
+          <label for="message" class="form-label small fw-semibold">Message</label>
+          <textarea
+            class="form-control"
+            id="message"
+            name="message"
+            rows="8"
+            placeholder="Thanks for reporting this. The issue is now resolved..."
+            maxlength="8000"
+            required
+          ></textarea>
+        </div>
+
+        <div class="d-grid gap-2">
+          <button type="submit" class="btn btn-primary py-2 fw-semibold">
+            Send from support@votora.me
+          </button>
+          <a href="{{ url_for('admin_meetings') }}" class="btn btn-outline-secondary">
+            Back to dashboard
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

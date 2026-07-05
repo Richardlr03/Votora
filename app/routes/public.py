@@ -1,4 +1,4 @@
-from flask import Response, flash, redirect, render_template, request, send_from_directory, session, url_for
+from flask import Response, current_app, flash, redirect, render_template, request, send_from_directory, session, url_for
 
 from app.extensions import db
 from app.models import (
@@ -13,6 +13,7 @@ from app.models import (
 )
 from app.services.db_integrity import commit_session
 from app.services.security import generate_voter_code
+from app.services.support_email import is_valid_email, send_feedback_report
 from app.services.voting.simple_vote import upsert_single_option_vote
 
 PUBLIC_SITEMAP_ENDPOINTS = (
@@ -22,6 +23,7 @@ PUBLIC_SITEMAP_ENDPOINTS = (
     "join_meeting",
     "voting_systems",
     "forgot_password",
+    "support",
 )
 
 JOIN_QR_FORM_SESSION_KEY = "join_qr_form"
@@ -233,6 +235,63 @@ def register_public_routes(app):
     @app.route("/voting-systems")
     def voting_systems():
         return render_template("voting_systems.html")
+
+    @app.route("/support", methods=["GET", "POST"])
+    def support():
+        if request.method == "POST":
+            reporter_email = (request.form.get("email") or "").strip().lower()
+            role = (request.form.get("role") or "").strip()
+            page_url = (request.form.get("page_url") or "").strip()
+            browser_device = (request.form.get("browser_device") or "").strip()
+            description = (request.form.get("description") or "").strip()
+
+            if not is_valid_email(reporter_email):
+                flash("Please enter a valid email address.", "support_error")
+                return redirect(url_for("support"))
+
+            if role not in {"admin", "voter", "other"}:
+                flash("Please select your role.", "support_error")
+                return redirect(url_for("support"))
+
+            if not description:
+                flash("Please describe what happened.", "support_error")
+                return redirect(url_for("support"))
+
+            if len(description) > 8000:
+                flash("Description must be 8000 characters or fewer.", "support_error")
+                return redirect(url_for("support"))
+
+            if len(page_url) > 500:
+                flash("Page / URL must be 500 characters or fewer.", "support_error")
+                return redirect(url_for("support"))
+
+            if len(browser_device) > 200:
+                flash("Browser / device must be 200 characters or fewer.", "support_error")
+                return redirect(url_for("support"))
+
+            try:
+                send_feedback_report(
+                    reporter_email=reporter_email,
+                    role=role,
+                    page_url=page_url,
+                    browser_device=browser_device,
+                    description=description,
+                )
+            except Exception as exc:
+                current_app.logger.exception(exc)
+                flash(
+                    "We could not send your report right now. Please try again shortly.",
+                    "support_error",
+                )
+                return redirect(url_for("support"))
+
+            flash(
+                "Thanks — your report was sent. We'll get back to you by email if needed.",
+                "success",
+            )
+            return redirect(url_for("support"))
+
+        return render_template("support.html")
 
     @app.route("/vote/<code>")
     def voter_dashboard(code):

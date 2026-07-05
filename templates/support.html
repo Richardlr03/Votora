@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Report a Bug / Give Feedback | Votora{% endblock %}
+{% block meta_description %}Report a Votora bug or send alpha feedback. Tell us what broke, which page you were on, and how to reach you.{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-center support-wrapper" style="min-height: 70vh;">
+  <div class="card border-0 shadow-lg support-card w-100">
+    <div class="card-body p-4 p-md-5">
+      <div class="text-center mb-4">
+        <div class="vp-brand-badge mx-auto mb-3 support-icon-container">
+          <i class="bi bi-bug-fill text-primary"></i>
+        </div>
+        <h1 class="h4 fw-bold mb-1">Report a bug / Give feedback</h1>
+        <p class="text-muted small mb-0">
+          Votora is in alpha. If a button failed, a ballot did not load, or results looked wrong, tell us.
+        </p>
+      </div>
+
+      {% with messages = get_flashed_messages(category_filter=["support_error"]) %}
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-danger py-2 px-3 border-0 small mb-4 d-flex align-items-center">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i>
+              <div>{{ message }}</div>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" class="needs-validation" novalidate data-vp-lock-on-submit>
+        <div class="mb-3">
+          <label for="email" class="form-label small fw-semibold">Your email</label>
+          <input
+            type="email"
+            class="form-control bg-light border-0"
+            id="email"
+            name="email"
+            placeholder="you@example.com"
+            required
+          >
+          <div class="form-text">We may reply from support@votora.me if we need more detail.</div>
+        </div>
+
+        <div class="mb-3">
+          <label for="role" class="form-label small fw-semibold">Your role</label>
+          <select class="form-select bg-light border-0" id="role" name="role" required>
+            <option value="" selected disabled>Select one</option>
+            <option value="admin">Meeting admin / organizer</option>
+            <option value="voter">Voter</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label for="page_url" class="form-label small fw-semibold">Page / URL (optional)</label>
+          <input
+            type="text"
+            class="form-control bg-light border-0"
+            id="page_url"
+            name="page_url"
+            placeholder="https://www.votora.me/join/meeting/..."
+          >
+        </div>
+
+        <div class="mb-3">
+          <label for="browser_device" class="form-label small fw-semibold">Browser / device (optional)</label>
+          <input
+            type="text"
+            class="form-control bg-light border-0"
+            id="browser_device"
+            name="browser_device"
+            placeholder="Safari on iPhone, Chrome on Windows, etc."
+          >
+        </div>
+
+        <div class="mb-4">
+          <label for="description" class="form-label small fw-semibold">What happened?</label>
+          <textarea
+            class="form-control bg-light border-0"
+            id="description"
+            name="description"
+            rows="6"
+            placeholder="What were you trying to do? What did you expect? What happened instead?"
+            required
+          ></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold shadow-sm">
+          Send report
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+  .support-card {
+    max-width: 640px;
+    background: rgba(255, 255, 255, 0.92);
+    border-radius: 20px;
+  }
+  .support-icon-container {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+  }
+</style>
+{% endblock %}

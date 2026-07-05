@@ -154,6 +154,15 @@
       .vp-footer{
         color: rgba(15, 23, 42, .65);
       }
+      .vp-footer-link {
+        color: rgba(15, 23, 42, .75);
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .vp-footer-link:hover {
+        color: #2563eb;
+        text-decoration: underline;
+      }
 
       .vp-flash-backdrop {
           position: fixed;
@@ -232,8 +241,16 @@
 
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav ms-auto align-items-center">
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('support') }}">Support</a>
+            </li>
             {% if current_user.is_authenticated %}
               <li class="nav-item"><a class="nav-link" href="{{ url_for('admin_meetings') }}">Dashboard</a></li>
+              {% if is_dev_admin %}
+                <li class="nav-item">
+                  <a class="nav-link" href="{{ url_for('admin_support_reply') }}">Support reply</a>
+                </li>
+              {% endif %}
               <li class="nav-item"><span class="nav-link text-white-50 px-3">| Admin: {{ current_user.username }}</span></li>
               <li class="nav-item"><a class="nav-link text-danger" href="{{ url_for('logout') }}">Logout</a></li>
 
@@ -266,7 +283,7 @@
       {% if messages %}
         {% set visible = [] %}
         {% for category, message in messages %}
-          {% if category not in ['reset_error', 'login_error', 'join_error'] %}
+          {% if category not in ['reset_error', 'login_error', 'join_error', 'support_error'] %}
             {% set _ = visible.append((category, message)) %}
           {% endif %}
         {% endfor %}
@@ -309,8 +326,11 @@
       </div>
     </main>
 
-    <footer class="vp-footer text-center py-4"> <small>
-        &copy; 2026 Votora &middot; Built by Richard Tam
+    <footer class="vp-footer text-center py-4">
+      <small>
+        &copy; 2026 Votora &middot;
+        <a class="vp-footer-link" href="{{ url_for('support') }}">Report a bug</a>
+        &middot; Built by Richard Tam
       </small>
     </footer>
 

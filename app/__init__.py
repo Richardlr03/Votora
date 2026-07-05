@@ -4,6 +4,7 @@ from app.config import Config
 from app.extensions import db, login_manager, migrate
 from app.models import User
 from app.routes import register_routes
+from app.routes.admin_common import is_dev_admin
 
 
 def create_app(config_override=None):
@@ -24,6 +25,10 @@ def create_app(config_override=None):
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
+
+    @app.context_processor
+    def inject_dev_admin_flag():
+        return {"is_dev_admin": is_dev_admin()}
 
     register_routes(app)
     return app

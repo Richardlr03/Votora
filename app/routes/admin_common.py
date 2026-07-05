@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from flask import abort
+from flask import abort, current_app
 from flask_login import current_user
 
 
@@ -66,3 +66,12 @@ def validate_meeting_schedule(meeting_date_raw, start_time_raw, end_time_raw):
 def ensure_meeting_owner(meeting):
     if meeting.admin_id != current_user.id:
         abort(403)
+
+
+def is_dev_admin():
+    if not current_user.is_authenticated:
+        return False
+    allowed = current_app.config.get("DEV_ADMIN_USERNAMES") or []
+    username = (current_user.username or "").strip().casefold()
+    allowed_names = {name.strip().casefold() for name in allowed if name.strip()}
+    return username in allowed_names

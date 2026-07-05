@@ -21,6 +21,17 @@ class Config:
 
     RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 
+    SUPPORT_NOTIFY_EMAIL = os.getenv("SUPPORT_NOTIFY_EMAIL", "")
+    SUPPORT_FROM_EMAIL = os.getenv(
+        "SUPPORT_FROM_EMAIL",
+        "Votora Support <support@votora.me>",
+    )
+    DEV_ADMIN_USERNAMES = [
+        item.strip()
+        for item in os.getenv("DEV_ADMIN_USERNAMES", "").split(",")
+        if item.strip()
+    ]
+
     _mysql_connect_args = {
         "connect_timeout": int(os.getenv("MYSQL_CONNECT_TIMEOUT", "10")),
     }

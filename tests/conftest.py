@@ -25,6 +25,10 @@ def app(tmp_path: Path):
             "SQLALCHEMY_DATABASE_URI": f"sqlite:///{db_file}",
             "SQLALCHEMY_ENGINE_OPTIONS": {},
             "WTF_CSRF_ENABLED": False,
+            "RESEND_API_KEY": "test-resend-key",
+            "SUPPORT_NOTIFY_EMAIL": "notify@example.com",
+            "SUPPORT_FROM_EMAIL": "Votora Support <support@votora.me>",
+            "DEV_ADMIN_USERNAMES": [],
         }
     )
 
