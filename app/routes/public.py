@@ -25,6 +25,7 @@ PUBLIC_SITEMAP_ENDPOINTS = (
     "forgot_password",
     "support",
     "privacy_policy",
+    "terms_and_conditions",
 )
 
 JOIN_QR_FORM_SESSION_KEY = "join_qr_form"
@@ -297,6 +298,10 @@ def register_public_routes(app):
     @app.route("/privacy-policy")
     def privacy_policy():
         return render_template("privacy_policy.html")
+
+    @app.route("/terms-and-conditions")
+    def terms_and_conditions():
+        return render_template("terms_and_conditions.html")
 
     @app.route("/vote/<code>")
     def voter_dashboard(code):
