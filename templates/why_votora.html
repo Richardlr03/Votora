@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Why Votora? | Votora{% endblock %}
+{% block meta_description %}Why Votora exists — purpose-built to run fair society elections with check-in, one ballot per member, and automated tallying.{% endblock %}
+
+{% block content %}
+<div class="container py-2 vp-why-page" style="max-width: 800px;">
+  <span class="vp-kicker">Why Votora?</span>
+  <h1 class="vp-why-title mt-3 mb-4">Built for elections that actually need to be fair.</h1>
+
+  <p class="vp-why-lead">
+    Votora exists because the same problem shows up at every society AGM: Google Forms are free, but they were never meant to run a proper election. You still worry about duplicate responses, messy spreadsheets, and whether ranked-choice or cumulative votes were counted correctly. Votora is a free, purpose-built voting tool for clubs and student societies — not a generic survey form with an election sticker on it.
+  </p>
+
+  <p class="vp-why-lead">
+    We are transparent: Votora is independent software, currently in alpha, and improving with real meetings. What you get is infrastructure societies actually need — QR check-in with Member ID, <strong>one person, one ballot</strong>, live participation tracking, and <strong>automated tallying</strong> for yes/no, first-past-the-post, preference (ranked choice / STV), score, and cumulative votes. No manual counting late into the night. No wondering whether someone voted twice from another device.
+  </p>
+
+  <div class="vp-why-trust border rounded-4 p-4 mt-4 mb-4">
+    <h2 class="h5 fw-semibold mb-3">Why societies choose Votora over a Google Form</h2>
+    <ul class="vp-why-list mb-0">
+      <li><strong>Stop double-voting</strong> — voters check in with Member ID; each person gets one ballot per motion.</li>
+      <li><strong>Fair, automated counts</strong> — STV, cumulative, and score ballots tallied in-app, not in Excel.</li>
+      <li><strong>Built for live meetings</strong> — QR join, mobile-friendly voting, results when the motion closes.</li>
+      <li><strong>Free to use</strong> — no paywall for societies running real elections.</li>
+    </ul>
+  </div>
+
+  <p class="vp-why-note text-muted small mb-0">
+    Votora is still in active development. If something breaks,
+    <a href="{{ url_for('support') }}">report a bug</a> — we read every report and fix issues quickly.
+  </p>
+</div>
+
+<style>
+  .vp-why-page .vp-kicker {
+    display: inline-block;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #0f172a;
+    background: rgba(15, 23, 42, 0.06);
+  }
+  .vp-why-title {
+    font-size: clamp(1.75rem, 3.5vw, 2.25rem);
+    line-height: 1.15;
+    color: #131a2d;
+  }
+  .vp-why-lead {
+    color: rgba(15, 23, 42, 0.82);
+    line-height: 1.65;
+    font-size: 1.05rem;
+  }
+  .vp-why-lead + .vp-why-lead {
+    margin-top: 1.25rem;
+  }
+  .vp-why-trust {
+    background: rgba(255, 255, 255, 0.82);
+    border-color: rgba(15, 23, 42, 0.08) !important;
+  }
+  .vp-why-list {
+    padding-left: 1.25rem;
+    color: rgba(15, 23, 42, 0.82);
+    line-height: 1.65;
+  }
+  .vp-why-list li + li {
+    margin-top: 0.65rem;
+  }
+</style>
+{% endblock %}

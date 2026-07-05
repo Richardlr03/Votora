@@ -89,6 +89,18 @@
     </div>
   </div>
 
+  <div class="vp-why-teaser mt-4 mt-lg-5 p-4 p-lg-5">
+    <span class="vp-kicker">Why Votora?</span>
+    <h2 class="vp-why-teaser-title mt-2 mb-3">More than a Google Form.</h2>
+    <p class="vp-why-teaser-text mb-3">
+      Running a society election on a survey tool means trusting that nobody submits twice, that ranked ballots get counted correctly, and that the executive team can actually run the meeting without a spreadsheet meltdown. Votora is a free online voting platform built to solve exactly that — for AGMs, council elections, and motions that need proper rules, not just a poll link in the group chat.
+    </p>
+    <p class="vp-why-teaser-text mb-4">
+      Votora gives you QR check-in, one ballot per member, and automated tallying for preference, cumulative, score, and yes/no votes. It is independent, purpose-built, and free. If you are looking for something fairer than a Form and simpler than enterprise election software, you are in the right place.
+    </p>
+    <a class="vp-modes-link" href="{{ url_for('why_votora') }}">Read why we built Votora <i class="bi bi-arrow-right ms-1"></i></a>
+  </div>
+
   <div class="vp-modes mt-4 mt-lg-5">
     <div class="d-flex flex-column flex-md-row align-items-md-end justify-content-between gap-2 mb-3">
       <div>
@@ -284,8 +296,28 @@
   }
 
   .vp-modes-title {
-    font-size: clamp(1.45rem, 2.2vw, 2rem);
-    color: #101828;
+    font-size: clamp(1.5rem, 3vw, 2.1rem);
+    color: #131a2d;
+  }
+
+  .vp-why-teaser {
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 24px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.88));
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
+  }
+
+  .vp-why-teaser-title {
+    font-size: clamp(1.4rem, 2.8vw, 1.9rem);
+    color: #131a2d;
+  }
+
+  .vp-why-teaser-text {
+    color: rgba(15, 23, 42, 0.76);
+    line-height: 1.6;
+    margin-bottom: 0;
+    width: 100%;
   }
 
   .vp-modes-link {
