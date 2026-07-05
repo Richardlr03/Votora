@@ -171,6 +171,7 @@ def _snapshot_round(candidates, options_by_id, round_number, quota):
         "round_number": round_number,
         "counts": counts,
         "quota": quota,
+        "log_lines": [],
         "total": sum(
             (row["count_value"] for row in counts if row["status"] == STATUS_CONTINUING),
             Fraction(0, 1),
@@ -178,7 +179,7 @@ def _snapshot_round(candidates, options_by_id, round_number, quota):
     }
 
 
-def _pick_elimination_loser(tied_ids, candidates, options_by_id, round_logs, rng):
+def _pick_elimination_loser(tied_ids, candidates, options_by_id, log_line, rng):
     if len(tied_ids) == 1:
         return tied_ids[0]
 
@@ -191,14 +192,14 @@ def _pick_elimination_loser(tied_ids, candidates, options_by_id, round_logs, rng
         lowest = [cid for cid, value in values.items() if value == min_value]
         if len(lowest) == 1:
             loser = lowest[0]
-            round_logs.append(
+            log_line(
                 f"Tie for elimination among {names}. "
                 f"{options_by_id[loser].text} had the lower tally in an earlier round and is eliminated."
             )
             return loser
 
     loser = rng.choice(sorted(tied_ids))
-    round_logs.append(
+    log_line(
         f"Tie for elimination among {names} could not be resolved by prior tallies. "
         f"{options_by_id[loser].text} was selected by lot."
     )
@@ -209,6 +210,14 @@ def count_stv(valid_ballot_preferences, num_seats, options_by_id, rng=None):
     rng = rng or random.Random()
     round_logs = []
     rounds = []
+    preface_logs = []
+
+    def log_line(message):
+        round_logs.append(message)
+        if rounds:
+            rounds[-1]["log_lines"].append(message)
+        else:
+            preface_logs.append(message)
 
     if num_seats < 1:
         num_seats = 1
@@ -236,11 +245,12 @@ def count_stv(valid_ballot_preferences, num_seats, options_by_id, rng=None):
             "quota": quota,
             "rounds": rounds,
             "round_logs": round_logs,
+            "preface_logs": preface_logs,
             "seats_filled": 0,
         }
 
-    round_logs.append(
-        f"Valid ballots (N) = {num_ballots}. Seats to fill (n) = {num_seats}. "
+    log_line(
+        f"Valid ballots = {num_ballots}. Seats to fill = {num_seats}. "
         f"Droop quota = floor({num_ballots} / {num_seats + 1}) + 1 = {quota}."
     )
 
@@ -250,7 +260,7 @@ def count_stv(valid_ballot_preferences, num_seats, options_by_id, rng=None):
         rounds.append(_snapshot_round(candidates, options_by_id, round_number, quota))
 
         if seats_filled == num_seats:
-            round_logs.append("All seats filled. Count complete.")
+            log_line("All seats filled. Count complete.")
             break
 
         continuing = [
@@ -265,12 +275,12 @@ def count_stv(valid_ballot_preferences, num_seats, options_by_id, rng=None):
                 candidate.status = STATUS_ELECTED
                 candidate.elected_round = round_number
                 seats_filled += 1
-                round_logs.append(
+                log_line(
                     f"{options_by_id[candidate.option_id].text} is elected "
                     f"(remaining continuing candidates equal unfilled seats)."
                 )
             rounds.append(_snapshot_round(candidates, options_by_id, round_number, quota))
-            round_logs.append("All seats filled. Count complete.")
+            log_line("All seats filled. Count complete.")
             break
 
         if pending_surplus:
@@ -289,7 +299,7 @@ def count_stv(valid_ballot_preferences, num_seats, options_by_id, rng=None):
                     options_by_id[item["candidate"].option_id].text for item in next_group
                 )
                 rng.shuffle(next_group)
-                round_logs.append(
+                log_line(
                     f"Tie for surplus distribution order among {names}. Order determined by lot."
                 )
 
@@ -310,7 +320,7 @@ def count_stv(valid_ballot_preferences, num_seats, options_by_id, rng=None):
                 else:
                     next_candidate.pile.append(ballot)
 
-            round_logs.append(
+            log_line(
                 f"Surplus from {options_by_id[candidate.option_id].text} distributed "
                 f"at transfer ratio {format_tally(ratio)}."
             )
@@ -333,7 +343,7 @@ def count_stv(valid_ballot_preferences, num_seats, options_by_id, rng=None):
                 seats_filled += 1
                 tally = tallies[candidate.option_id]
                 surplus = tally - quota
-                round_logs.append(
+                log_line(
                     f"{options_by_id[candidate.option_id].text} is elected with "
                     f"tally {format_tally(tally)} (quota {quota}, surplus {format_tally(surplus)})."
                 )
@@ -346,17 +356,17 @@ def count_stv(valid_ballot_preferences, num_seats, options_by_id, rng=None):
                         }
                     )
                 else:
-                    round_logs.append(
+                    log_line(
                         f"No surplus to distribute for {options_by_id[candidate.option_id].text}."
                     )
 
             if seats_filled == num_seats:
-                round_logs.append("All seats filled. Count complete.")
+                log_line("All seats filled. Count complete.")
                 break
             continue
 
         if not continuing:
-            round_logs.append("No continuing candidates remain. Count stopped.")
+            log_line("No continuing candidates remain. Count stopped.")
             break
 
         min_tally = min(tallies[candidate.option_id] for candidate in continuing)
@@ -369,7 +379,7 @@ def count_stv(valid_ballot_preferences, num_seats, options_by_id, rng=None):
             [candidate.option_id for candidate in lowest],
             candidates,
             options_by_id,
-            round_logs,
+            log_line,
             rng,
         )
         loser = candidates[loser_id]
@@ -377,7 +387,7 @@ def count_stv(valid_ballot_preferences, num_seats, options_by_id, rng=None):
         loser.eliminated_round = round_number
 
         if len(lowest) == 1:
-            round_logs.append(
+            log_line(
                 f"{options_by_id[loser_id].text} is eliminated with the lowest tally "
                 f"({format_tally(min_tally)})."
             )
@@ -385,7 +395,7 @@ def count_stv(valid_ballot_preferences, num_seats, options_by_id, rng=None):
             tied_names = ", ".join(
                 options_by_id[candidate.option_id].text for candidate in lowest
             )
-            round_logs.append(
+            log_line(
                 f"Tie for lowest tally among {tied_names}. "
                 f"{options_by_id[loser_id].text} is eliminated."
             )
@@ -417,6 +427,7 @@ def count_stv(valid_ballot_preferences, num_seats, options_by_id, rng=None):
         "quota": quota,
         "rounds": rounds,
         "round_logs": round_logs,
+        "preface_logs": preface_logs,
         "seats_filled": seats_filled,
     }
 
@@ -440,6 +451,7 @@ def tally_preference_stv(motion, rng=None):
         "quota": stv_result["quota"],
         "rounds": stv_result["rounds"],
         "round_logs": stv_result["round_logs"],
+        "preface_logs": stv_result.get("preface_logs", []),
         "informal_ballots": informal_ballots,
         "seats_filled": stv_result["seats_filled"],
     }
