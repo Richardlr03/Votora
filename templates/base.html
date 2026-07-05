@@ -2,13 +2,13 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>{% block title %}Votora &mdash; Secure Online Voting{% endblock %}</title>
+    <title>{% block title %}Votora | Free Online Voting Platform | Preference, Cumulative &amp; More{% endblock %}</title>
 
-    <meta name="description" content="Votora is a secure, modern voting platform for teams and communities. Launch ballots, invite voters, and publish results with confidence.">
+    <meta name="description" content="{% block meta_description %}Fully free online voting for clubs and organizations. Yes/No, FPTP, preference (ranked choice), score, and cumulative ballots — QR check-in and live results at no cost.{% endblock %}">
 
     <!-- Open Graph / Social preview -->
-    <meta property="og:title" content="Votora &mdash; Secure Online Voting">
-    <meta property="og:description" content="Make group decisions simple, fair, and fast with Votora.">
+    <meta property="og:title" content="{% block og_title %}Free Online Voting Platform | Yes/No, Preference, Cumulative &amp; More | Votora{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Fully free online voting for yes/no, FPTP, preference (ranked choice), score, and cumulative ballots. QR check-in and live results at no cost.{% endblock %}">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ request.url_root }}">
     <meta property="og:image" content="{{ url_for('static', filename='Votora_Favicon.png', _external=True) }}">
