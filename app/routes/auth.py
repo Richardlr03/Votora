@@ -9,6 +9,7 @@ from flask import (
     url_for,
 )
 from flask_login import login_required, login_user, logout_user
+from sqlalchemy import or_
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.extensions import db
@@ -62,7 +63,11 @@ def register_auth_routes(app):
             password = request.form.get("password")
             remember = bool(request.form.get("remember"))
 
-            user = User.query.filter_by(username=username, status="active").first()
+            identifier = (username or "").strip()
+            user = User.query.filter(
+                User.status == "active",
+                or_(User.username == identifier, User.email == identifier.lower()),
+            ).first()
             if user and check_password_hash(user.password_hash, password):
                 login_user(user, remember=remember)
                 return redirect(url_for("admin_meetings"))
