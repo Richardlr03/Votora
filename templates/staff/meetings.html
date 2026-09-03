@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Meetings | Staff moderation{% endblock %}
+{% block content %}
+{% include "staff/_navigation.html" %}
+<h1>Meetings</h1>
+<form class="row g-2 mb-3"><div class="col-sm-8"><input class="form-control" name="q" value="{{ query }}" placeholder="Search meeting title"></div><div class="col-sm-4"><button class="btn btn-primary">Search</button></div></form>
+<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Meeting</th><th>Host</th><th>Votes</th><th></tr></thead><tbody>{% for meeting in meetings %}<tr><td><strong>{{ meeting.title }}</strong><br><small class="text-muted">#{{ meeting.id }} · {{ meeting.created_at or 'No date' }}</small></td><td>{{ meeting.host.email if meeting.host else 'Unknown' }}</td><td>{{ meeting.vote_count }}</td><td><a class="btn btn-sm btn-outline-primary" href="{{ url_for('staff_meeting_detail', meeting_id=meeting.id) }}">View</a> <button class="btn btn-sm btn-outline-danger" data-flag-type="meeting" data-flag-id="{{ meeting.id }}" data-flag-label="{{ meeting.title }}" onclick="openFlagFromButton(this)">Flag</button></td></tr>{% else %}<tr><td colspan="4" class="text-muted">No matching meetings.</td></tr>{% endfor %}</tbody></table></div>
+{% include "staff/_flag_modal.html" %}
+{% endblock %}

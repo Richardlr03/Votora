@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<main class="container py-5">
+  {% include "staff/_navigation.html" %}
+  <h1>Pending moderation flags</h1>
+  {% for flag in flags %}
+    {% if flag.target_type == "user" %}
+      <article class="card mb-3 border-warning"><div class="card-body">
+        <h2 class="h5">User flag: {{ flag.target.email }}</h2>
+        <p class="mb-1">User #{{ flag.target.id }} · joined {{ flag.target.created_at or "unknown" }}</p>
+        <p class="mb-1">{{ flag.target.active_meeting_count }} active meeting(s): {% for meeting in flag.target.meeting_preview %}{{ meeting.title }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
+        <p>Reason: {{ flag.reason }}<br><small>Flagged by {{ flag.flagger.email }} · {{ flag.created_at }}</small></p>
+        <div class="alert alert-warning py-2">Approving removes {{ flag.target.active_meeting_count }} meeting(s) and all their votes.</div>
+        <button class="btn btn-danger" onclick="resolveFlag({{ flag.id }}, 'approve')">Approve removal</button>
+        <button class="btn btn-outline-secondary" onclick="resolveFlag({{ flag.id }}, 'reject')">Reject</button>
+      </div></article>
+    {% else %}
+      <article class="card mb-3"><div class="card-body">
+        <h2 class="h5">Meeting flag: {{ flag.target.title }}</h2>
+        <p class="mb-1">Meeting #{{ flag.target.id }} · created {{ flag.target.created_at or "unknown" }} · {{ flag.target.vote_count }} active vote(s)</p>
+        <p>Host: {{ flag.target.host.email if flag.target.host else "Unknown" }}<br>Reason: {{ flag.reason }}<br><small>Flagged by {{ flag.flagger.email }} · {{ flag.created_at }}</small></p>
+        <button class="btn btn-danger" onclick="resolveFlag({{ flag.id }}, 'approve')">Approve removal</button>
+        <button class="btn btn-outline-secondary" onclick="resolveFlag({{ flag.id }}, 'reject')">Reject</button>
+      </div></article>
+    {% endif %}
+  {% else %}<p>No pending flags.</p>{% endfor %}
+</main>
+<script>
+async function resolveFlag(id, action) {
+  let body = {};
+  if (action === 'reject') { const note = prompt('Rejection reason:'); if (!note) return; body.resolution_note = note; }
+  const response = await fetch(`/staff/flags/${id}/${action}`, {method: 'POST', headers: {'Content-Type': 'application/json', 'Accept': 'application/json'}, body: JSON.stringify(body)});
+  if (response.ok) location.reload(); else alert((await response.json()).error || 'Unable to resolve flag.');
+}
+</script>
+{% endblock %}

@@ -8,6 +8,8 @@ def tally_score_votes(motion):
     voter_ids = set()
 
     for vote in motion.score_votes:
+        if vote.status != "active":
+            continue
         if vote.option_id in totals:
             score_value = float(vote.score)
             totals[vote.option_id] += score_value

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{{ meeting.title }} | Staff moderation{% endblock %}
+{% block content %}
+{% include "staff/_navigation.html" %}
+<div class="d-flex justify-content-between align-items-start gap-3 mb-4"><div><p class="text-uppercase text-muted small mb-1">Read-only host view</p><h1>{{ meeting.title }}</h1><p class="text-muted mb-0">Hosted by {{ summary.host.email if summary.host else 'Unknown host' }}</p></div><button class="btn btn-outline-danger" data-flag-type="meeting" data-flag-id="{{ meeting.id }}" data-flag-label="{{ meeting.title }}" onclick="openFlagFromButton(this)">Flag this meeting</button></div>
+{% if meeting.description %}<section class="card mb-3"><div class="card-body"><h2 class="h5">Description</h2><p class="mb-0">{{ meeting.description }}</p></div></section>{% endif %}
+<div class="row g-3 mb-3"><div class="col-md-4"><div class="card h-100"><div class="card-body"><small class="text-muted">Schedule</small><p class="mb-0">{{ meeting.meeting_date or 'Not scheduled' }}{% if meeting.start_time %}<br>{{ meeting.start_time }}{% if meeting.end_time %} – {{ meeting.end_time }}{% endif %}{% endif %}</p></div></div></div><div class="col-md-4"><div class="card h-100"><div class="card-body"><small class="text-muted">Voters</small><p class="display-6 mb-0">{{ meeting.voters|length }}</p></div></div></div><div class="col-md-4"><div class="card h-100"><div class="card-body"><small class="text-muted">Active votes</small><p class="display-6 mb-0">{{ summary.vote_count }}</p></div></div></div></div>
+<section class="card"><div class="card-body"><h2 class="h5">Motions</h2><div class="list-group list-group-flush">{% for motion in meeting.motions %}<div class="list-group-item px-0"><strong>{{ motion.title }}</strong><br><small class="text-muted">{{ motion.type }} · {{ motion.status }}</small></div>{% else %}<p class="text-muted mb-0">No motions have been created.</p>{% endfor %}</div></div></section>
+{% include "staff/_flag_modal.html" %}
+{% endblock %}

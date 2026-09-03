@@ -64,6 +64,8 @@ def validate_meeting_schedule(meeting_date_raw, start_time_raw, end_time_raw):
 
 
 def ensure_meeting_owner(meeting):
+    if meeting.status != "active":
+        abort(404)
     if meeting.admin_id != current_user.id:
         abort(403)
 

@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}My flags | Staff moderation{% endblock %}
+{% block content %}
+{% include "staff/_navigation.html" %}
+<h1>My flags</h1>
+<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Target</th><th>Reason</th><th>Status</th><th>Resolution note</th></tr></thead><tbody>{% for flag in flags %}<tr><td>{{ flag.target_type|title }} #{{ flag.target_id }}</td><td>{{ flag.reason }}</td><td><span class="badge text-bg-{{ 'warning' if flag.status == 'pending' else ('success' if flag.status == 'approved' else 'secondary') }}">{{ flag.status }}</span></td><td>{{ flag.resolution_note or '—' }}</td></tr>{% else %}<tr><td colspan="4" class="text-muted">You have not created any flags.</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

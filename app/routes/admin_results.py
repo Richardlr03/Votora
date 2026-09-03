@@ -99,6 +99,8 @@ def register_admin_result_routes(app):
             else:
                 votes_for_motion = motion.yes_no_votes
 
+            votes_for_motion = [vote for vote in votes_for_motion if vote.status == "active"]
+
             for vote in votes_for_motion:
                 voter_map.setdefault(vote.voter_id, {"voter": vote.voter, "votes": []})
                 voter_map[vote.voter_id]["votes"].append(vote)

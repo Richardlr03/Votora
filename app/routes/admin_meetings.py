@@ -33,7 +33,7 @@ def register_admin_meeting_routes(app):
     @app.route("/admin/meetings")
     @login_required
     def admin_meetings():
-        meetings = Meeting.query.filter_by(admin_id=current_user.id).all()
+        meetings = Meeting.query.filter_by(admin_id=current_user.id, status="active").all()
         meetings.sort(
             key=lambda meeting: (
                 meeting.meeting_date is None,
@@ -130,7 +130,7 @@ def register_admin_meeting_routes(app):
     @app.route("/admin/meetings/<int:meeting_id>")
     @login_required
     def meeting_detail(meeting_id):
-        meeting = Meeting.query.get_or_404(meeting_id)
+        meeting = Meeting.query.filter_by(id=meeting_id, status="active").first_or_404()
         ensure_meeting_owner(meeting)
         return render_template("admin/meeting_detail.html", meeting=meeting)
 
@@ -182,67 +182,25 @@ def register_admin_meeting_routes(app):
                 meeting_id=meeting.id
             )
         ]
-        voter_ids = [
-            voter_id
-            for (voter_id,) in db.session.query(Voter.id).filter_by(
-                meeting_id=meeting.id
-            )
-        ]
-
         if motion_ids:
-            YesNoVote.query.filter(YesNoVote.motion_id.in_(motion_ids)).delete(
-                synchronize_session=False
-            )
-            CandidateVote.query.filter(CandidateVote.motion_id.in_(motion_ids)).delete(
-                synchronize_session=False
-            )
-            CumulativeVote.query.filter(
-                CumulativeVote.motion_id.in_(motion_ids)
-            ).delete(synchronize_session=False)
-            PreferenceVote.query.filter(PreferenceVote.motion_id.in_(motion_ids)).delete(
-                synchronize_session=False
-            )
-            ScoreVote.query.filter(ScoreVote.motion_id.in_(motion_ids)).delete(
-                synchronize_session=False
-            )
-            Option.query.filter(Option.motion_id.in_(motion_ids)).delete(
-                synchronize_session=False
-            )
-            Motion.query.filter(Motion.id.in_(motion_ids)).delete(
-                synchronize_session=False
-            )
+            for model in (YesNoVote, CandidateVote, CumulativeVote, PreferenceVote, ScoreVote):
+                model.query.filter(model.motion_id.in_(motion_ids)).update(
+                    {"status": "invalidated"}, synchronize_session=False
+                )
 
-        if voter_ids:
-            YesNoVote.query.filter(YesNoVote.voter_id.in_(voter_ids)).delete(
-                synchronize_session=False
-            )
-            CandidateVote.query.filter(CandidateVote.voter_id.in_(voter_ids)).delete(
-                synchronize_session=False
-            )
-            CumulativeVote.query.filter(
-                CumulativeVote.voter_id.in_(voter_ids)
-            ).delete(synchronize_session=False)
-            PreferenceVote.query.filter(PreferenceVote.voter_id.in_(voter_ids)).delete(
-                synchronize_session=False
-            )
-            ScoreVote.query.filter(ScoreVote.voter_id.in_(voter_ids)).delete(
-                synchronize_session=False
-            )
-            Voter.query.filter(Voter.id.in_(voter_ids)).delete(synchronize_session=False)
-
-        db.session.delete(meeting)
+        meeting.status = "removed"
         db.session.commit()
 
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return {"ok": True}
 
-        flash("Meeting deleted successfully.", "success")
+        flash("Meeting removed successfully.", "success")
         return redirect(url_for("admin_meetings"))
 
     @app.route("/admin/meetings/<int:meeting_id>/update", methods=["POST"])
     @login_required
     def update_meeting(meeting_id):
-        meeting = Meeting.query.get_or_404(meeting_id)
+        meeting = Meeting.query.filter_by(id=meeting_id, status="active").first_or_404()
         ensure_meeting_owner(meeting)
 
         title = request.form.get("title", "").strip()

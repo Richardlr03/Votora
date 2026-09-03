@@ -141,7 +141,7 @@ def register_public_routes(app):
 
     @app.route("/join/meeting/<token>", methods=["GET", "POST"])
     def join_meeting_by_token(token):
-        meeting = Meeting.query.filter_by(join_token=token).first_or_404()
+        meeting = Meeting.query.filter_by(join_token=token, status="active").first_or_404()
 
         form_student_id = ""
         form_name = ""
@@ -323,6 +323,8 @@ def register_public_routes(app):
             )
 
         meeting = voter.meeting
+        if not meeting or meeting.status != "active":
+            return render_template("voter/motion_list.html", invalid=True, voter=None, meeting=None, motions=None, voted_motion_ids=set())
         motions = meeting.motions
         voted_motion_ids = {
             *{vote.motion_id for vote in voter.yes_no_votes},
@@ -358,6 +360,8 @@ def register_public_routes(app):
             )
 
         meeting = voter.meeting
+        if not meeting or meeting.status != "active":
+            return render_template("voter/vote_motion.html", invalid=True, voter=None, meeting=None, motion=None, simple_vote=None, preference_ranks=None, score_values=None)
         motion = Motion.query.filter_by(id=motion_id, meeting_id=meeting.id).first_or_404()
 
         simple_vote = None

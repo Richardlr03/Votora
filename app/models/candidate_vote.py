@@ -13,3 +13,4 @@ class CandidateVote(db.Model):
     voter_id = db.Column(db.Integer, db.ForeignKey("voters.id"), nullable=False)
     motion_id = db.Column(db.Integer, db.ForeignKey("motions.id"), nullable=False)
     option_id = db.Column(db.Integer, db.ForeignKey("options.id"), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default="active")

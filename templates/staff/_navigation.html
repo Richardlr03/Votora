@@ -1,0 +1,8 @@
+<nav class="d-flex flex-wrap gap-2 mb-4" aria-label="Staff navigation">
+  <a class="btn btn-outline-primary" href="{{ url_for('staff_dashboard') }}">Dashboard</a>
+  <a class="btn btn-outline-primary" href="{{ url_for('staff_users') }}">Users</a>
+  <a class="btn btn-outline-primary" href="{{ url_for('staff_meetings') }}">Meetings</a>
+  <a class="btn btn-outline-primary" href="{{ url_for('my_flags') }}">My flags</a>
+  {% if staff.staff_role == 'superstaff' %}<a class="btn btn-outline-danger" href="{{ url_for('staff_review_queue') }}">Review queue</a>{% endif %}
+  <a class="btn btn-outline-secondary ms-auto" href="{{ url_for('logout') }}">Logout</a>
+</nav>

@@ -8,6 +8,8 @@ def tally_cumulative_votes(motion):
     voter_ids = set()
 
     for vote in motion.cumulative_votes:
+        if vote.status != "active":
+            continue
         if vote.option_id in totals:
             points_value = float(vote.points)
             totals[vote.option_id] += points_value

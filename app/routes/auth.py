@@ -5,6 +5,7 @@ from flask import (
     redirect,
     render_template,
     request,
+    session,
     url_for,
 )
 from flask_login import login_required, login_user, logout_user
@@ -61,12 +62,11 @@ def register_auth_routes(app):
             password = request.form.get("password")
             remember = bool(request.form.get("remember"))
 
-            user = User.query.filter_by(username=username).first()
-            if not user or not check_password_hash(user.password_hash, password):
-                error = "Invalid username or password."
-            else:
+            user = User.query.filter_by(username=username, status="active").first()
+            if user and check_password_hash(user.password_hash, password):
                 login_user(user, remember=remember)
                 return redirect(url_for("admin_meetings"))
+            error = "Invalid username or password."
 
         return render_template("login_signup/login.html", error=error)
 

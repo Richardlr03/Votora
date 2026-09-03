@@ -24,7 +24,7 @@ def create_app(config_override=None):
 
     @login_manager.user_loader
     def load_user(user_id):
-        return User.query.get(int(user_id))
+        return User.query.filter_by(id=int(user_id), status="active").first()
 
     @app.context_processor
     def inject_dev_admin_flag():

@@ -18,6 +18,7 @@ class Meeting(db.Model):
     member_id_label = db.Column(
         db.String(100), nullable=False, default=DEFAULT_MEMBER_ID_LABEL
     )
+    status = db.Column(db.String(20), nullable=False, default="active")
 
     motions = db.relationship("Motion", backref="meeting", lazy=True)
     voters = db.relationship("Voter", backref="meeting", lazy=True)

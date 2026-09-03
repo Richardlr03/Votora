@@ -17,6 +17,8 @@ def format_tally(value):
 def parse_ballots_for_motion(motion):
     votes_by_voter = {}
     for vote in motion.preference_votes:
+        if vote.status != "active":
+            continue
         entry = votes_by_voter.setdefault(
             vote.voter_id,
             {"voter": vote.voter, "votes": []},

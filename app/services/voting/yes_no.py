@@ -3,6 +3,8 @@ def tally_yes_no_abstain(motion):
     option_counts = {option_id: 0 for option_id in options_by_id}
 
     for vote in motion.yes_no_votes:
+        if vote.status != "active":
+            continue
         if vote.option_id in option_counts:
             option_counts[vote.option_id] += 1
 
