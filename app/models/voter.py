@@ -17,6 +17,7 @@ class Voter(db.Model):
 
     yes_no_votes = db.relationship("YesNoVote", backref="voter", lazy=True)
     candidate_votes = db.relationship("CandidateVote", backref="voter", lazy=True)
+    preference_ballots = db.relationship("PreferenceBallot", backref="voter", lazy=True)
     preference_votes = db.relationship("PreferenceVote", backref="voter", lazy=True)
     score_votes = db.relationship("ScoreVote", backref="voter", lazy=True)
     cumulative_votes = db.relationship("CumulativeVote", backref="voter", lazy=True)

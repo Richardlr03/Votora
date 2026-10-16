@@ -1,6 +1,14 @@
 import random
 
-from app.models import Meeting, Motion, Option, PreferenceVote, User, Voter
+from app.models import (
+    Meeting,
+    Motion,
+    Option,
+    PreferenceBallot,
+    PreferenceVote,
+    User,
+    Voter,
+)
 from app.services.voting import tally_preference_stv
 from app.services.voting.preference import count_stv, parse_ballots_for_motion
 
@@ -209,6 +217,52 @@ def test_preference_tally_no_ballots(db_session):
     assert result["quota"] == 0
     assert len(result["winners"]) == 0
     assert result["rounds"] == []
+
+
+def test_blank_submission_is_valid_and_initially_exhausted(db_session):
+    admin = User(
+        username="blank_admin",
+        email="blank_admin@example.com",
+        password_hash="hashed-password",
+    )
+    db_session.add(admin)
+    db_session.flush()
+    meeting = Meeting(title="Blank Ballot Meeting", admin_id=admin.id)
+    db_session.add(meeting)
+    db_session.flush()
+    motion = Motion(
+        meeting_id=meeting.id,
+        title="Preference Vote",
+        type="PREFERENCE",
+        num_winners=1,
+    )
+    db_session.add(motion)
+    db_session.flush()
+    db_session.add_all(
+        [
+            Option(motion_id=motion.id, text="Alice"),
+            Option(motion_id=motion.id, text="Bob"),
+        ]
+    )
+    voter = Voter(
+        meeting_id=meeting.id,
+        student_id="510009999",
+        name="Blank Voter",
+        code="PREFBLNK",
+    )
+    db_session.add(voter)
+    db_session.flush()
+    db_session.add(PreferenceBallot(voter_id=voter.id, motion_id=motion.id))
+    db_session.commit()
+
+    result = tally_preference_stv(motion)
+
+    assert result["total_ballots"] == 1
+    assert result["ranked_ballot_count"] == 0
+    assert len(result["blank_ballots"]) == 1
+    assert result["quota"] == 1
+    assert result["informal_ballots"] == []
+    assert result["winners"] == []
 
 
 def test_informal_ballots_are_logged(db_session):

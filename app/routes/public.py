@@ -6,6 +6,7 @@ from app.models import (
     CumulativeVote,
     Meeting,
     Motion,
+    PreferenceBallot,
     PreferenceVote,
     ScoreVote,
     Voter,
@@ -330,6 +331,11 @@ def register_public_routes(app):
             *{vote.motion_id for vote in voter.yes_no_votes},
             *{vote.motion_id for vote in voter.candidate_votes},
             *{vote.motion_id for vote in voter.preference_votes},
+            *{
+                ballot.motion_id
+                for ballot in voter.preference_ballots
+                if ballot.status == "active"
+            },
             *{vote.motion_id for vote in voter.score_votes},
             *{vote.motion_id for vote in voter.cumulative_votes},
         }
@@ -399,6 +405,16 @@ def register_public_routes(app):
 
         if request.method == "POST":
             if motion.type == "PREFERENCE":
+                ballot = PreferenceBallot.query.filter_by(
+                    voter_id=voter.id, motion_id=motion.id
+                ).first()
+                if ballot is None:
+                    db.session.add(
+                        PreferenceBallot(voter_id=voter.id, motion_id=motion.id)
+                    )
+                else:
+                    ballot.status = "active"
+
                 existing_pref_votes = PreferenceVote.query.filter_by(
                     voter_id=voter.id, motion_id=motion.id
                 ).all()

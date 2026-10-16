@@ -101,6 +101,23 @@ def register_admin_result_routes(app):
 
             votes_for_motion = [vote for vote in votes_for_motion if vote.status == "active"]
 
+            if motion.type == "PREFERENCE":
+                submitted_voter_ids = {
+                    ballot.voter_id for ballot in motion.preference_ballots
+                }
+                for ballot in motion.preference_ballots:
+                    if ballot.status == "active":
+                        voter_map[ballot.voter_id] = {
+                            "voter": ballot.voter,
+                            "votes": [],
+                        }
+                votes_for_motion = [
+                    vote
+                    for vote in votes_for_motion
+                    if vote.voter_id in voter_map
+                    or vote.voter_id not in submitted_voter_ids
+                ]
+
             for vote in votes_for_motion:
                 voter_map.setdefault(vote.voter_id, {"voter": vote.voter, "votes": []})
                 voter_map[vote.voter_id]["votes"].append(vote)
@@ -112,10 +129,13 @@ def register_admin_result_routes(app):
 
                 if motion.type == "PREFERENCE":
                     sorted_votes = sorted(vote_list, key=lambda item: item.preference_rank)
-                    parts = []
-                    for item in sorted_votes:
-                        parts.append(f"{item.preference_rank}: {item.option.text}")
-                    choice_display = ", ".join(parts)
+                    if sorted_votes:
+                        parts = []
+                        for item in sorted_votes:
+                            parts.append(f"{item.preference_rank}: {item.option.text}")
+                        choice_display = ", ".join(parts)
+                    else:
+                        choice_display = "No candidates supported"
                 elif motion.type == "CUMULATIVE":
                     choice_display = ", ".join(
                         f"{item.option.text}: {item.points:g}" for item in vote_list

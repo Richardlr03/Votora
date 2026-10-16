@@ -3,6 +3,7 @@ from app.models.cumulative_vote import CumulativeVote
 from app.models.meeting import Meeting
 from app.models.motion import Motion
 from app.models.option import Option
+from app.models.preference_ballot import PreferenceBallot
 from app.models.preference_vote import PreferenceVote
 from app.models.user import User
 from app.models.staff import Flag, AuditLog
@@ -19,6 +20,7 @@ __all__ = [
     "YesNoVote",
     "CandidateVote",
     "CumulativeVote",
+    "PreferenceBallot",
     "PreferenceVote",
     "ScoreVote",
     "Flag",

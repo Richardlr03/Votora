@@ -1,4 +1,12 @@
-from app.models import Meeting, Motion, Option, Voter, YesNoVote
+from app.models import (
+    Meeting,
+    Motion,
+    Option,
+    PreferenceBallot,
+    PreferenceVote,
+    Voter,
+    YesNoVote,
+)
 
 
 def test_voter_dashboard_invalid_code_renders_invalid_page(client):
@@ -367,4 +375,50 @@ def test_yes_no_vote_upsert_last_choice_wins(client, db_session):
     votes = YesNoVote.query.filter_by(voter_id=voter.id, motion_id=motion.id).all()
     assert len(votes) == 1
     assert votes[0].option_id == no_option.id
+
+
+def test_empty_preference_ballot_is_recorded_as_submitted(client, db_session):
+    meeting = Meeting(title="Blank Preference Meeting")
+    db_session.add(meeting)
+    db_session.flush()
+
+    voter = Voter(
+        meeting_id=meeting.id,
+        student_id="620000001",
+        name="Blank Ballot Voter",
+        code="BLANK001",
+    )
+    motion = Motion(
+        meeting_id=meeting.id,
+        title="Committee election",
+        type="PREFERENCE",
+        status="OPEN",
+        num_winners=1,
+    )
+    db_session.add_all([voter, motion])
+    db_session.flush()
+    db_session.add_all(
+        [
+            Option(motion_id=motion.id, text="Alice"),
+            Option(motion_id=motion.id, text="Bob"),
+        ]
+    )
+    db_session.commit()
+
+    response = client.post(
+        f"/vote/{voter.code}/motion/{motion.id}",
+        data={},
+    )
+
+    assert response.status_code == 302
+    ballot = PreferenceBallot.query.filter_by(
+        voter_id=voter.id, motion_id=motion.id
+    ).one()
+    assert ballot.status == "active"
+    assert PreferenceVote.query.filter_by(
+        voter_id=voter.id, motion_id=motion.id
+    ).count() == 0
+
+    dashboard = client.get(f"/vote/{voter.code}").get_data(as_text=True)
+    assert "Voted" in dashboard
 

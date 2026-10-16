@@ -17,6 +17,7 @@ class Motion(db.Model):
     options = db.relationship("Option", backref="motion", lazy=True)
     yes_no_votes = db.relationship("YesNoVote", backref="motion", lazy=True)
     candidate_votes = db.relationship("CandidateVote", backref="motion", lazy=True)
+    preference_ballots = db.relationship("PreferenceBallot", backref="motion", lazy=True)
     preference_votes = db.relationship("PreferenceVote", backref="motion", lazy=True)
     score_votes = db.relationship("ScoreVote", backref="motion", lazy=True)
     cumulative_votes = db.relationship("CumulativeVote", backref="motion", lazy=True)

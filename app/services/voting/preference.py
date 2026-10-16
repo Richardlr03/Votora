@@ -15,29 +15,47 @@ def format_tally(value):
 
 
 def parse_ballots_for_motion(motion):
-    votes_by_voter = {}
+    ballots_by_voter = {}
+    submitted_voter_ids = set()
+
+    for ballot in motion.preference_ballots:
+        submitted_voter_ids.add(ballot.voter_id)
+        if ballot.status == "active":
+            ballots_by_voter[ballot.voter_id] = {
+                "voter": ballot.voter,
+                "votes": [],
+            }
+
     for vote in motion.preference_votes:
         if vote.status != "active":
             continue
-        entry = votes_by_voter.setdefault(
-            vote.voter_id,
-            {"voter": vote.voter, "votes": []},
-        )
+        entry = ballots_by_voter.get(vote.voter_id)
+        if entry is None:
+            # Backwards compatibility for ballots created before ballot-level
+            # submission records were introduced. An inactive submission must
+            # not be revived by an active child preference.
+            if vote.voter_id in submitted_voter_ids:
+                continue
+            entry = ballots_by_voter.setdefault(
+                vote.voter_id,
+                {"voter": vote.voter, "votes": []},
+            )
         entry["votes"].append(vote)
 
     valid_ballots = []
     informal_ballots = []
     valid_option_ids = {option.id for option in motion.options}
 
-    for data in votes_by_voter.values():
+    for data in ballots_by_voter.values():
         voter = data["voter"]
         votes = data["votes"]
 
         if not votes:
-            informal_ballots.append(
+            valid_ballots.append(
                 {
                     "voter": voter,
-                    "reason": "Blank ballot (no preferences submitted).",
+                    "preferences": [],
+                    "is_blank": True,
                 }
             )
             continue
@@ -91,6 +109,7 @@ def parse_ballots_for_motion(motion):
             {
                 "voter": voter,
                 "preferences": sorted_preferences,
+                "is_blank": False,
             }
         )
 
@@ -233,6 +252,9 @@ def count_stv(valid_ballot_preferences, num_seats, options_by_id, rng=None):
     ballots = [_STVBallot(preferences) for preferences in valid_ballot_preferences]
 
     for ballot in ballots:
+        if not ballot.preferences:
+            ballot.exhausted = True
+            continue
         option_id = ballot.preferences[0]
         ballot.active_preference = 1
         candidates[option_id].pile.append(ballot)
@@ -242,6 +264,20 @@ def count_stv(valid_ballot_preferences, num_seats, options_by_id, rng=None):
     pending_surplus = []
 
     if num_ballots == 0:
+        return {
+            "winners": [],
+            "quota": quota,
+            "rounds": rounds,
+            "round_logs": round_logs,
+            "preface_logs": preface_logs,
+            "seats_filled": 0,
+        }
+
+    if not any(ballot.preferences for ballot in ballots):
+        log_line(
+            f"Valid ballots = {num_ballots}, but every ballot contains no preferences. "
+            "No candidate can be elected."
+        )
         return {
             "winners": [],
             "quota": quota,
@@ -436,6 +472,7 @@ def count_stv(valid_ballot_preferences, num_seats, options_by_id, rng=None):
 
 def tally_preference_stv(motion, rng=None):
     valid_ballots, informal_ballots = parse_ballots_for_motion(motion)
+    blank_ballots = [ballot for ballot in valid_ballots if ballot["is_blank"]]
     options_by_id = {option.id: option for option in motion.options}
     num_seats = motion.num_winners or 1
 
@@ -450,6 +487,8 @@ def tally_preference_stv(motion, rng=None):
         "winners": stv_result["winners"],
         "num_winners": num_seats,
         "total_ballots": len(valid_ballots),
+        "ranked_ballot_count": len(valid_ballots) - len(blank_ballots),
+        "blank_ballots": blank_ballots,
         "quota": stv_result["quota"],
         "rounds": stv_result["rounds"],
         "round_logs": stv_result["round_logs"],

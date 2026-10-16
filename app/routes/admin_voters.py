@@ -6,6 +6,7 @@ from app.models import (
     CandidateVote,
     CumulativeVote,
     Meeting,
+    PreferenceBallot,
     PreferenceVote,
     ScoreVote,
     Voter,
@@ -151,6 +152,9 @@ def register_admin_voter_routes(app):
                 synchronize_session=False
             )
             PreferenceVote.query.filter_by(voter_id=voter.id).delete(
+                synchronize_session=False
+            )
+            PreferenceBallot.query.filter_by(voter_id=voter.id).delete(
                 synchronize_session=False
             )
             ScoreVote.query.filter_by(voter_id=voter.id).delete(

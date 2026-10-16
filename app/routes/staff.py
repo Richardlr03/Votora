@@ -9,7 +9,8 @@ import click
 
 from app.extensions import db
 from app.models import (AuditLog, CandidateVote, CumulativeVote, Flag, Meeting,
-                        Motion, PreferenceVote, ScoreVote, User, YesNoVote)
+                        Motion, PreferenceBallot, PreferenceVote, ScoreVote,
+                        User, YesNoVote)
 
 VOTE_MODELS = (YesNoVote, CandidateVote, PreferenceVote, ScoreVote, CumulativeVote)
 
@@ -209,6 +210,11 @@ def register_staff_routes(app):
                 for model in VOTE_MODELS:
                     if motion_ids:
                         model.query.filter(model.motion_id.in_(motion_ids), model.status == "active").update({"status": "invalidated"}, synchronize_session=False)
+                if motion_ids:
+                    PreferenceBallot.query.filter(
+                        PreferenceBallot.motion_id.in_(motion_ids),
+                        PreferenceBallot.status == "active",
+                    ).update({"status": "invalidated"}, synchronize_session=False)
             flag.status, flag.resolved_by, flag.resolved_at = "approved", actor.id, datetime.utcnow()
             _audit(actor.id, "flag_approved", flag)
             db.session.commit()

@@ -8,6 +8,7 @@ from app.models import (
     Meeting,
     Motion,
     Option,
+    PreferenceBallot,
     PreferenceVote,
     ScoreVote,
     YesNoVote,
@@ -192,6 +193,9 @@ def register_admin_motion_routes(app):
                 PreferenceVote.query.filter_by(motion_id=motion.id).delete(
                     synchronize_session=False
                 )
+                PreferenceBallot.query.filter_by(motion_id=motion.id).delete(
+                    synchronize_session=False
+                )
                 ScoreVote.query.filter_by(motion_id=motion.id).delete(
                     synchronize_session=False
                 )
@@ -232,6 +236,9 @@ def register_admin_motion_routes(app):
                 synchronize_session=False
             )
             PreferenceVote.query.filter_by(motion_id=motion.id).delete(
+                synchronize_session=False
+            )
+            PreferenceBallot.query.filter_by(motion_id=motion.id).delete(
                 synchronize_session=False
             )
             ScoreVote.query.filter_by(motion_id=motion.id).delete(
