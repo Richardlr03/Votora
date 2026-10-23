@@ -1,4 +1,6 @@
 from app.models import (
+    ApprovalBallot,
+    ApprovalVote,
     Meeting,
     Motion,
     Option,
@@ -7,6 +9,65 @@ from app.models import (
     Voter,
     YesNoVote,
 )
+
+
+def test_approval_ballot_is_editable_and_none_above_is_exclusive(client, db_session):
+    meeting = Meeting(title="Approval Route Meeting")
+    db_session.add(meeting)
+    db_session.flush()
+    voter = Voter(meeting_id=meeting.id, student_id="APP1", name="Approver", code="APPROUTE")
+    motion = Motion(
+        meeting_id=meeting.id,
+        title="Committee",
+        type="APPROVAL",
+        status="OPEN",
+        approval_threshold_type="percentage",
+        approval_threshold_value=50,
+        approval_percentage_basis="ballots_cast",
+    )
+    db_session.add_all([voter, motion])
+    db_session.flush()
+    alice = Option(motion_id=motion.id, text="Alice")
+    bob = Option(motion_id=motion.id, text="Bob")
+    db_session.add_all([alice, bob])
+    db_session.commit()
+    url = f"/vote/{voter.code}/motion/{motion.id}"
+
+    assert client.post(url, data={"approval_options": [str(alice.id), str(bob.id)]}).status_code == 302
+    assert ApprovalVote.query.filter_by(voter_id=voter.id, motion_id=motion.id).count() == 2
+
+    assert client.post(url, data={"approval_none": "1"}).status_code == 302
+    ballot = ApprovalBallot.query.filter_by(voter_id=voter.id, motion_id=motion.id).one()
+    assert ballot.none_above is True
+    assert ApprovalVote.query.filter_by(voter_id=voter.id, motion_id=motion.id).count() == 0
+
+    response = client.post(
+        url,
+        data={"approval_options": str(alice.id), "approval_none": "1"},
+    )
+    assert response.status_code == 400
+    db_session.refresh(ballot)
+    assert ballot.none_above is True
+
+
+def test_approval_ballot_cannot_be_edited_after_close(client, db_session):
+    meeting = Meeting(title="Closed Approval Meeting")
+    db_session.add(meeting)
+    db_session.flush()
+    voter = Voter(meeting_id=meeting.id, student_id="APP2", name="Approver", code="APPCLOSE")
+    motion = Motion(meeting_id=meeting.id, title="Committee", type="APPROVAL", status="CLOSED")
+    db_session.add_all([voter, motion])
+    db_session.flush()
+    option = Option(motion_id=motion.id, text="Alice")
+    db_session.add(option)
+    db_session.commit()
+
+    response = client.post(
+        f"/vote/{voter.code}/motion/{motion.id}",
+        data={"approval_options": str(option.id)},
+    )
+    assert response.status_code == 302
+    assert ApprovalBallot.query.count() == 0
 
 
 def test_voter_dashboard_invalid_code_renders_invalid_page(client):

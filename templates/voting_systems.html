@@ -8,7 +8,7 @@
 <div class="container py-2" style="max-width: 800px;">
     <div class="text-center mb-5">
         <h1 class="text-center mb-2">How your ballots are counted</h1>
-        <p class="text-muted">This guide explains how each method works — yes/no, FPTP, preference (ranked choice), score, and cumulative — so you can run fair elections with confidence.</p>
+        <p class="text-muted">This guide explains how each method works — yes/no, FPTP, preference (ranked choice), score, cumulative, and approval — so you can run fair elections with confidence.</p>
     </div>
 
     <div class="accordion accordion-flush shadow-sm rounded-4 overflow-hidden" id="votingAccordion">
@@ -25,6 +25,24 @@
                         <li class="mb-2"><b>Yes/No:</b> Direct support or opposition.</li>
                         <li class="mb-2"><b>Abstain:</b> Records your presence without taking a side.</li>
                         <li><b>Calculation:</b> Results are calculated as percentages of the total votes cast for each option.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item border-bottom">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed fw-bold py-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseApproval">
+                    <i class="bi bi-ui-checks-grid text-primary me-3"></i> Approval Voting
+                </button>
+            </h2>
+            <div id="collapseApproval" class="accordion-collapse collapse" data-bs-parent="#votingAccordion">
+                <div class="accordion-body bg-light-subtle">
+                    <p class="small text-muted mb-3">Voters may approve none, some, or all candidates, or select “None of the above” instead.</p>
+                    <ul class="small ps-3 mb-0">
+                        <li class="mb-2"><strong>Independent outcomes:</strong> Every candidate is evaluated separately, so any number of candidates may be elected.</li>
+                        <li class="mb-2"><strong>Threshold:</strong> The host sets either a percentage of ballots cast or eligible voters, or an absolute approval count.</li>
+                        <li><strong>Exact threshold:</strong> A candidate who meets the threshold exactly is elected.</li>
                     </ul>
                 </div>
             </div>

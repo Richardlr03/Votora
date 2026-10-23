@@ -110,6 +110,9 @@
                                 data-motion-status="{{ motion.status }}"
                                 data-motion-winners="{{ motion.num_winners or '' }}"
                                 data-motion-threshold="{{ motion.approved_threshold_pct if motion.approved_threshold_pct is not none else '' }}"
+                                data-motion-approval-threshold-type="{{ motion.approval_threshold_type or '' }}"
+                                data-motion-approval-threshold-value="{{ motion.approval_threshold_value if motion.approval_threshold_value is not none else '' }}"
+                                data-motion-approval-basis="{{ motion.approval_percentage_basis or '' }}"
                                 data-motion-score-max="{{ motion.score_max or '' }}"
                                 data-motion-budget="{{ motion.budget_points or '' }}"
                                 data-motion-options="{% for c in motion.options %}{{ c.text }}{{ '\n' if not loop.last }}{% endfor %}"
@@ -337,6 +340,9 @@
                                 data-motion-status="{{ motion.status }}"
                                 data-motion-winners="{{ motion.num_winners or '' }}"
                                 data-motion-threshold="{{ motion.approved_threshold_pct if motion.approved_threshold_pct is not none else '' }}"
+                                data-motion-approval-threshold-type="{{ motion.approval_threshold_type or '' }}"
+                                data-motion-approval-threshold-value="{{ motion.approval_threshold_value if motion.approval_threshold_value is not none else '' }}"
+                                data-motion-approval-basis="{{ motion.approval_percentage_basis or '' }}"
                                 data-motion-score-max="{{ motion.score_max or '' }}"
                                 data-motion-budget="{{ motion.budget_points or '' }}"
                                 data-motion-options="{% for c in motion.options %}{{ c.text }}{{ '\n' if not loop.last }}{% endfor %}"
@@ -520,6 +526,7 @@
                 <option value="PREFERENCE">Preference voting (ranked, multiple winners)</option>
                 <option value="SCORE">Score voting</option>
                 <option value="CUMULATIVE">Cumulative voting</option>
+                <option value="APPROVAL">Approval Voting</option>
               </select>
             </div>
 
@@ -566,6 +573,28 @@
                 value="50"
               >
               <div class="form-text">Yes must reach this percentage of (Yes + No).</div>
+            </div>
+
+            <div class="mb-3" id="approvalThresholdGroup">
+              <label class="form-label">Approval threshold</label>
+              <div class="row g-2">
+                <div class="col-md-4">
+                  <select class="form-select" id="motionApprovalThresholdType" name="approval_threshold_type">
+                    <option value="percentage">Percentage</option>
+                    <option value="absolute">Absolute count</option>
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <input type="number" class="form-control" id="motionApprovalThresholdValue" name="approval_threshold_value" min="0" step="0.1" value="50">
+                </div>
+                <div class="col-md-4">
+                  <select class="form-select" id="motionApprovalBasis" name="approval_percentage_basis">
+                    <option value="ballots_cast">Total ballots cast</option>
+                    <option value="eligible_voters">Eligible voters</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-text">A candidate meeting the threshold exactly is elected. None-of-the-above ballots count as ballots cast.</div>
             </div>
 
             <div class="mb-3" id="scoreMaxGroup">
@@ -793,6 +822,7 @@
                 <option value="PREFERENCE">Preference voting (ranked, multiple winners)</option>
                 <option value="SCORE">Score voting</option>
                 <option value="CUMULATIVE">Cumulative voting</option>
+                <option value="APPROVAL">Approval Voting</option>
               </select>
             </div>
 
@@ -835,6 +865,28 @@
                 placeholder="e.g. 50"
               >
               <div class="form-text">Yes must reach this percentage of (Yes + No).</div>
+            </div>
+
+            <div class="mb-3" id="editApprovalThresholdGroup">
+              <label class="form-label">Approval threshold</label>
+              <div class="row g-2">
+                <div class="col-md-4">
+                  <select class="form-select" id="editApprovalThresholdType" name="approval_threshold_type">
+                    <option value="percentage">Percentage</option>
+                    <option value="absolute">Absolute count</option>
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <input type="number" class="form-control" id="editApprovalThresholdValue" name="approval_threshold_value" min="0" step="0.1">
+                </div>
+                <div class="col-md-4">
+                  <select class="form-select" id="editApprovalBasis" name="approval_percentage_basis">
+                    <option value="ballots_cast">Total ballots cast</option>
+                    <option value="eligible_voters">Eligible voters</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-text">A candidate meeting the threshold exactly is elected.</div>
             </div>
 
             <div class="mb-3" id="editScoreMaxGroup">
@@ -914,6 +966,10 @@
       const numWinnersInput = document.getElementById("motionNumWinners");
       const yesNoThresholdGroup = document.getElementById("yesNoThresholdGroup");
       const yesNoThresholdInput = document.getElementById("motionApprovedThreshold");
+      const approvalThresholdGroup = document.getElementById("approvalThresholdGroup");
+      const approvalThresholdType = document.getElementById("motionApprovalThresholdType");
+      const approvalThresholdValue = document.getElementById("motionApprovalThresholdValue");
+      const approvalBasis = document.getElementById("motionApprovalBasis");
       const scoreMaxGroup = document.getElementById("scoreMaxGroup");
       const scoreMaxInput = document.getElementById("motionScoreMax");
       const budgetPointsGroup = document.getElementById("budgetPointsGroup");
@@ -940,6 +996,14 @@
         const needsThreshold = t === "YES_NO";
         yesNoThresholdGroup.style.display = needsThreshold ? "block" : "none";
         yesNoThresholdInput.disabled = !needsThreshold;
+        const needsApprovalThreshold = t === "APPROVAL";
+        approvalThresholdGroup.style.display = needsApprovalThreshold ? "block" : "none";
+        approvalThresholdType.disabled = !needsApprovalThreshold;
+        approvalThresholdValue.disabled = !needsApprovalThreshold;
+        const approvalUsesPercentage = approvalThresholdType.value === "percentage";
+        approvalBasis.disabled = !needsApprovalThreshold || !approvalUsesPercentage;
+        approvalThresholdValue.step = approvalUsesPercentage ? "0.1" : "1";
+        approvalThresholdValue.max = approvalUsesPercentage ? "100" : "";
         const needsScoreMax = t === "SCORE";
         scoreMaxGroup.style.display = needsScoreMax ? "block" : "none";
         scoreMaxInput.disabled = !needsScoreMax;
@@ -958,6 +1022,9 @@
         } else if (!yesNoThresholdInput.value) {
           yesNoThresholdInput.value = "50";
         }
+        if (needsApprovalThreshold && !approvalThresholdValue.value) {
+          approvalThresholdValue.value = "50";
+        }
         if (!needsScoreMax) {
           scoreMaxInput.value = "";
         } else if (!scoreMaxInput.value) {
@@ -971,6 +1038,7 @@
       }
 
       motionType.addEventListener("change", updateMotionVisibility);
+      approvalThresholdType.addEventListener("change", updateMotionVisibility);
       updateMotionVisibility();
 
       motionForm.addEventListener("submit", async (event) => {
@@ -1290,6 +1358,10 @@
       const editWinnersGroup = document.getElementById("editNumWinnersGroup");
       const editThresholdGroup = document.getElementById("editYesNoThresholdGroup");
       const editThresholdInput = document.getElementById("editMotionThreshold");
+      const editApprovalThresholdGroup = document.getElementById("editApprovalThresholdGroup");
+      const editApprovalThresholdType = document.getElementById("editApprovalThresholdType");
+      const editApprovalThresholdValue = document.getElementById("editApprovalThresholdValue");
+      const editApprovalBasis = document.getElementById("editApprovalBasis");
       const editScoreMaxGroup = document.getElementById("editScoreMaxGroup");
       const editScoreMaxInput = document.getElementById("editMotionScoreMax");
       const editBudgetPointsGroup = document.getElementById("editBudgetPointsGroup");
@@ -1309,6 +1381,14 @@
         editWinnersGroup.style.display = (t === "PREFERENCE") ? "block" : "none";
         editThresholdGroup.style.display = (t === "YES_NO") ? "block" : "none";
         editThresholdInput.disabled = t !== "YES_NO";
+        const needsApprovalThreshold = t === "APPROVAL";
+        editApprovalThresholdGroup.style.display = needsApprovalThreshold ? "block" : "none";
+        editApprovalThresholdType.disabled = !needsApprovalThreshold;
+        editApprovalThresholdValue.disabled = !needsApprovalThreshold;
+        const approvalUsesPercentage = editApprovalThresholdType.value === "percentage";
+        editApprovalBasis.disabled = !needsApprovalThreshold || !approvalUsesPercentage;
+        editApprovalThresholdValue.step = approvalUsesPercentage ? "0.1" : "1";
+        editApprovalThresholdValue.max = approvalUsesPercentage ? "100" : "";
         editScoreMaxGroup.style.display = (t === "SCORE") ? "block" : "none";
         editScoreMaxInput.disabled = t !== "SCORE";
         editBudgetPointsGroup.style.display = (t === "CUMULATIVE") ? "block" : "none";
@@ -1318,6 +1398,10 @@
           editThresholdInput.value = "";
         } else if (!editThresholdInput.value) {
           editThresholdInput.value = "50";
+        }
+
+        if (needsApprovalThreshold && !editApprovalThresholdValue.value) {
+          editApprovalThresholdValue.value = "50";
         }
 
         if (t !== "SCORE") {
@@ -1334,6 +1418,7 @@
       }
 
       editTypeSelect.addEventListener("change", updateEditVisibility);
+      editApprovalThresholdType.addEventListener("change", updateEditVisibility);
 
       document.querySelectorAll('.edit-motion-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1348,6 +1433,9 @@
           }
           document.getElementById('editMotionNumWinners').value = btn.dataset.motionWinners;
           editThresholdInput.value = btn.dataset.motionThreshold || "50";
+          editApprovalThresholdType.value = btn.dataset.motionApprovalThresholdType || "percentage";
+          editApprovalThresholdValue.value = btn.dataset.motionApprovalThresholdValue || "50";
+          editApprovalBasis.value = btn.dataset.motionApprovalBasis || "ballots_cast";
           editScoreMaxInput.value = btn.dataset.motionScoreMax || "10";
           editBudgetPointsInput.value = btn.dataset.motionBudget || "10";
           

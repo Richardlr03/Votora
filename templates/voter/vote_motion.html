@@ -124,6 +124,23 @@
             <div class="py-2 px-3 mt-3 rounded-3 bg-info-subtle border border-info-subtle" id="totalPointsMobile">
               Total allocated: <strong><span id="totalPointsMobileValue">0</span></strong> points
             </div>
+          {% elif motion.type == "APPROVAL" %}
+            <div class="mb-3">
+              <h2 class="h6 fw-bold">Approve candidates</h2>
+              <p class="text-muted small mb-0">Choose any number of candidates, or choose None of the above.</p>
+            </div>
+            <div class="vstack gap-2">
+              {% for opt in motion.options %}
+                <label class="d-flex align-items-center gap-3 border rounded-3 p-3">
+                  <input class="form-check-input approval-candidate" type="checkbox" name="approval_options" value="{{ opt.id }}" {% if opt.id in approval_option_ids %}checked{% endif %}>
+                  <span class="fw-medium">{{ opt.text }}</span>
+                </label>
+              {% endfor %}
+              <label class="d-flex align-items-center gap-3 border border-secondary rounded-3 p-3 mt-2">
+                <input class="form-check-input approval-none" type="checkbox" name="approval_none" value="1" {% if approval_none_above %}checked{% endif %}>
+                <span class="fw-medium">None of the above</span>
+              </label>
+            </div>
           {% else %}
             <div class="mb-3">
               <h2 class="h6 fw-bold">
@@ -329,6 +346,23 @@
               <span class="small text-muted">Total allocated</span>
               <strong class="me-4"><span id="totalPointsDesktopValue">0</span></strong>
             </div>
+          {% elif motion.type == "APPROVAL" %}
+            <div class="mb-4">
+              <h2 class="h6 fw-bold">Approve candidates</h2>
+              <p class="text-muted small mb-0">Choose any number of candidates, or choose None of the above.</p>
+            </div>
+            <div class="d-grid gap-2">
+              {% for opt in motion.options %}
+                <label class="d-flex align-items-center gap-3 border rounded-3 p-3">
+                  <input class="form-check-input approval-candidate" type="checkbox" name="approval_options" value="{{ opt.id }}" {% if opt.id in approval_option_ids %}checked{% endif %}>
+                  <span class="fw-medium">{{ opt.text }}</span>
+                </label>
+              {% endfor %}
+              <label class="d-flex align-items-center gap-3 border border-secondary rounded-3 p-3 mt-2">
+                <input class="form-check-input approval-none" type="checkbox" name="approval_none" value="1" {% if approval_none_above %}checked{% endif %}>
+                <span class="fw-medium">None of the above</span>
+              </label>
+            </div>
           {% else %}
             <div class="mb-4">
               <h2 class="h6 fw-bold">
@@ -439,5 +473,19 @@
 
     updateTotal();
   })();
+
+  document.querySelectorAll("form").forEach((form) => {
+    const none = form.querySelector(".approval-none");
+    const candidates = Array.from(form.querySelectorAll(".approval-candidate"));
+    if (!none || !candidates.length) return;
+    none.addEventListener("change", () => {
+      if (none.checked) candidates.forEach((candidate) => { candidate.checked = false; });
+    });
+    candidates.forEach((candidate) => {
+      candidate.addEventListener("change", () => {
+        if (candidate.checked) none.checked = false;
+      });
+    });
+  });
 </script>
 {% endblock %}

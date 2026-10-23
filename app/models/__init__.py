@@ -1,3 +1,5 @@
+from app.models.approval_ballot import ApprovalBallot
+from app.models.approval_vote import ApprovalVote
 from app.models.candidate_vote import CandidateVote
 from app.models.cumulative_vote import CumulativeVote
 from app.models.meeting import Meeting
@@ -13,6 +15,8 @@ from app.models.score_vote import ScoreVote
 
 __all__ = [
     "User",
+    "ApprovalBallot",
+    "ApprovalVote",
     "Meeting",
     "Motion",
     "Option",

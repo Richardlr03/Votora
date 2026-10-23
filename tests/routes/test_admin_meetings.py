@@ -177,3 +177,81 @@ def test_generate_meeting_join_token_for_other_admin_returns_403(
 
     response = auth_client.post(f"/admin/meetings/{meeting.id}/join-token")
     assert response.status_code == 403
+
+
+def test_create_approval_motion_with_percentage_threshold(
+    db_session, auth_client, admin_user
+):
+    meeting = Meeting(title="Approval Admin Meeting", admin_id=admin_user.id)
+    db_session.add(meeting)
+    db_session.commit()
+
+    response = auth_client.post(
+        f"/admin/meetings/{meeting.id}/motions/new",
+        data={
+            "title": "Elect delegates",
+            "type": "APPROVAL",
+            "candidates": "Alice\nBob\nCharlie",
+            "approval_threshold_type": "percentage",
+            "approval_threshold_value": "60",
+            "approval_percentage_basis": "eligible_voters",
+        },
+        headers={"X-Requested-With": "XMLHttpRequest"},
+    )
+
+    assert response.status_code == 200
+    motion = Motion.query.filter_by(meeting_id=meeting.id, type="APPROVAL").one()
+    assert motion.approval_threshold_type == "percentage"
+    assert motion.approval_threshold_value == 60
+    assert motion.approval_percentage_basis == "eligible_voters"
+    assert [option.text for option in motion.options] == ["Alice", "Bob", "Charlie"]
+
+    detail = auth_client.get(f"/admin/meetings/{meeting.id}")
+    assert detail.status_code == 200
+    assert "Approval Voting" in detail.get_data(as_text=True)
+    results = auth_client.get(f"/admin/meetings/{meeting.id}/results")
+    assert results.status_code == 200
+    results_html = results.get_data(as_text=True)
+    assert "None of the above" in results_html
+    assert "Not elected" in results_html
+
+
+def test_create_approval_motion_validates_candidates_and_threshold(
+    db_session, auth_client, admin_user
+):
+    meeting = Meeting(title="Approval Validation Meeting", admin_id=admin_user.id)
+    db_session.add(meeting)
+    db_session.commit()
+    url = f"/admin/meetings/{meeting.id}/motions/new"
+    headers = {"X-Requested-With": "XMLHttpRequest"}
+
+    too_few = auth_client.post(
+        url,
+        data={
+            "title": "Elect delegate",
+            "type": "APPROVAL",
+            "candidates": "Alice",
+            "approval_threshold_type": "percentage",
+            "approval_threshold_value": "50",
+            "approval_percentage_basis": "ballots_cast",
+        },
+        headers=headers,
+    )
+    assert too_few.status_code == 400
+    assert "at least two" in too_few.get_json()["error"]
+
+    bad_threshold = auth_client.post(
+        url,
+        data={
+            "title": "Elect delegates",
+            "type": "APPROVAL",
+            "candidates": "Alice\nBob",
+            "approval_threshold_type": "percentage",
+            "approval_threshold_value": "101",
+            "approval_percentage_basis": "ballots_cast",
+        },
+        headers=headers,
+    )
+    assert bad_threshold.status_code == 400
+    assert "between 0 and 100" in bad_threshold.get_json()["error"]
+    assert Motion.query.filter_by(meeting_id=meeting.id, type="APPROVAL").count() == 0

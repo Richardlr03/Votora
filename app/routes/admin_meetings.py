@@ -5,6 +5,8 @@ from flask_login import current_user, login_required
 
 from app.extensions import db
 from app.models import (
+    ApprovalBallot,
+    ApprovalVote,
     CandidateVote,
     CumulativeVote,
     Meeting,
@@ -183,10 +185,13 @@ def register_admin_meeting_routes(app):
             )
         ]
         if motion_ids:
-            for model in (YesNoVote, CandidateVote, CumulativeVote, PreferenceVote, ScoreVote):
+            for model in (YesNoVote, CandidateVote, CumulativeVote, PreferenceVote, ScoreVote, ApprovalVote):
                 model.query.filter(model.motion_id.in_(motion_ids)).update(
                     {"status": "invalidated"}, synchronize_session=False
                 )
+            ApprovalBallot.query.filter(
+                ApprovalBallot.motion_id.in_(motion_ids)
+            ).update({"status": "invalidated"}, synchronize_session=False)
 
         meeting.status = "removed"
         db.session.commit()

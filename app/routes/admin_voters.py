@@ -3,6 +3,8 @@ from flask_login import login_required
 
 from app.extensions import db
 from app.models import (
+    ApprovalBallot,
+    ApprovalVote,
     CandidateVote,
     CumulativeVote,
     Meeting,
@@ -161,6 +163,12 @@ def register_admin_voter_routes(app):
                 synchronize_session=False
             )
             CumulativeVote.query.filter_by(voter_id=voter.id).delete(
+                synchronize_session=False
+            )
+            ApprovalVote.query.filter_by(voter_id=voter.id).delete(
+                synchronize_session=False
+            )
+            ApprovalBallot.query.filter_by(voter_id=voter.id).delete(
                 synchronize_session=False
             )
             db.session.delete(voter)

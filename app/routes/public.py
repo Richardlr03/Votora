@@ -2,6 +2,8 @@ from flask import Response, current_app, flash, redirect, render_template, reque
 
 from app.extensions import db
 from app.models import (
+    ApprovalBallot,
+    ApprovalVote,
     CandidateVote,
     CumulativeVote,
     Meeting,
@@ -16,6 +18,7 @@ from app.services.db_integrity import commit_session
 from app.services.security import generate_voter_code
 from app.services.support_email import is_valid_email, send_feedback_report
 from app.services.voting.simple_vote import upsert_single_option_vote
+from app.services.voting.approval import validate_approval_ballot
 
 PUBLIC_SITEMAP_ENDPOINTS = (
     "index",
@@ -338,6 +341,11 @@ def register_public_routes(app):
             },
             *{vote.motion_id for vote in voter.score_votes},
             *{vote.motion_id for vote in voter.cumulative_votes},
+            *{
+                ballot.motion_id
+                for ballot in voter.approval_ballots
+                if ballot.status == "active"
+            },
         }
 
         return render_template(
@@ -374,6 +382,8 @@ def register_public_routes(app):
         preference_ranks = {}
         score_values = {}
         cumulative_values = {}
+        approval_option_ids = set()
+        approval_none_above = False
         if motion.type == "PREFERENCE":
             votes_for_motion = [
                 vote for vote in voter.preference_votes if vote.motion_id == motion.id
@@ -397,6 +407,16 @@ def register_public_routes(app):
             ]
             for vote in votes_for_motion:
                 cumulative_values[vote.option_id] = vote.points
+        elif motion.type == "APPROVAL":
+            ballot = ApprovalBallot.query.filter_by(
+                voter_id=voter.id, motion_id=motion.id, status="active"
+            ).first()
+            approval_none_above = bool(ballot and ballot.none_above)
+            approval_option_ids = {
+                vote.option_id
+                for vote in voter.approval_votes
+                if vote.motion_id == motion.id and vote.status == "active"
+            }
         else:
             simple_vote = next(
                 (vote for vote in voter.yes_no_votes if vote.motion_id == motion.id),
@@ -404,6 +424,9 @@ def register_public_routes(app):
             )
 
         if request.method == "POST":
+            if motion.status != "OPEN":
+                flash("This poll is closed and can no longer be edited.", "danger")
+                return redirect(url_for("voter_dashboard", code=voter.code))
             if motion.type == "PREFERENCE":
                 ballot = PreferenceBallot.query.filter_by(
                     voter_id=voter.id, motion_id=motion.id
@@ -549,6 +572,65 @@ def register_public_routes(app):
                             points=points_value,
                         )
                     )
+            elif motion.type == "APPROVAL":
+                raw_option_ids = request.form.getlist("approval_options")
+                try:
+                    submitted_option_ids = [int(value) for value in raw_option_ids]
+                except ValueError:
+                    submitted_option_ids = [-1]
+                none_above = request.form.get("approval_none") == "1"
+                try:
+                    validate_approval_ballot(
+                        submitted_option_ids,
+                        none_above,
+                        {option.id for option in motion.options},
+                    )
+                except ValueError as exc:
+                    approval_option_ids = set(submitted_option_ids)
+                    approval_none_above = none_above
+                    flash(str(exc), "danger")
+                    return (
+                        render_template(
+                            "voter/vote_motion.html",
+                            invalid=False,
+                            voter=voter,
+                            meeting=meeting,
+                            motion=motion,
+                            simple_vote=simple_vote,
+                            preference_ranks=preference_ranks,
+                            score_values=score_values,
+                            cumulative_values=cumulative_values,
+                            approval_option_ids=approval_option_ids,
+                            approval_none_above=approval_none_above,
+                        ),
+                        400,
+                    )
+
+                ballot = ApprovalBallot.query.filter_by(
+                    voter_id=voter.id, motion_id=motion.id
+                ).first()
+                if ballot is None:
+                    ballot = ApprovalBallot(
+                        voter_id=voter.id,
+                        motion_id=motion.id,
+                        none_above=none_above,
+                    )
+                    db.session.add(ballot)
+                else:
+                    ballot.none_above = none_above
+                    ballot.status = "active"
+
+                ApprovalVote.query.filter_by(
+                    voter_id=voter.id, motion_id=motion.id
+                ).delete(synchronize_session=False)
+                for option_id in submitted_option_ids:
+                    db.session.add(
+                        ApprovalVote(
+                            voter_id=voter.id,
+                            motion_id=motion.id,
+                            option_id=option_id,
+                        )
+                    )
             else:
                 selected_option_id = request.form.get("option")
                 if selected_option_id:
@@ -581,4 +663,6 @@ def register_public_routes(app):
             preference_ranks=preference_ranks,
             score_values=score_values,
             cumulative_values=cumulative_values,
+            approval_option_ids=approval_option_ids,
+            approval_none_above=approval_none_above,
         )

@@ -201,6 +201,26 @@
                     </div>
                   </div>
                 </div>
+              {% elif item.result_type == "APPROVAL" %}
+                {% set approval = item.approval %}
+                <hr class="my-3">
+                <div class="row g-2 mb-3">
+                  <div class="col-4"><div class="p-2 rounded-3 bg-light border text-center"><div class="text-muted small">Ballots</div><div class="fw-semibold">{{ approval.ballot_count }}</div></div></div>
+                  <div class="col-4"><div class="p-2 rounded-3 bg-light border text-center"><div class="text-muted small">None above</div><div class="fw-semibold">{{ approval.none_above_count }}</div></div></div>
+                  <div class="col-4"><div class="p-2 rounded-3 bg-light border text-center"><div class="text-muted small">Threshold</div><div class="fw-semibold">{% if approval.threshold_type == 'percentage' %}{{ '%.1f'|format(approval.threshold_value) }}%{% else %}{{ approval.threshold_value|int }}{% endif %}</div></div></div>
+                </div>
+                <div class="text-muted small mb-2">Percentage basis: {{ 'eligible voters' if approval.percentage_basis == 'eligible_voters' else 'total ballots cast' }}. Meeting the line counts as elected.</div>
+                <div class="vstack gap-2">
+                  {% for row in approval.candidate_results %}
+                    <div class="border rounded-3 p-2 {% if row.elected %}border-success-subtle bg-success-subtle{% endif %}">
+                      <div class="d-flex justify-content-between gap-2"><span class="fw-semibold">{{ row.option.text }} {% if row.elected %}<span class="badge text-bg-success">Elected</span>{% else %}<span class="badge text-bg-secondary">Not elected</span>{% endif %}</span><span>{{ row.count }} · {{ '%.1f'|format(row.percent) }}%</span></div>
+                      <div class="progress mt-2 position-relative" style="height: 10px; overflow: visible;">
+                        <div class="progress-bar {% if row.elected %}bg-success{% endif %}" style="width: {{ [row.percent, 100]|min }}%;"></div>
+                        <div class="position-absolute bg-dark" title="Threshold" style="left: {{ approval.threshold_line_percent }}%; top: -3px; bottom: -3px; width: 2px;"></div>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
               {% elif item.result_type == "FPTP" %}
                 {% set fptp = item.fptp %}
                 {% set winner_ids = fptp.winners | map(attribute='id') | list %}
@@ -742,6 +762,29 @@
                   </div>
                 </div>
 
+              {% elif item.result_type == "APPROVAL" %}
+                {% set approval = item.approval %}
+                <hr class="my-3">
+                <div class="row g-3 mb-3">
+                  <div class="col-md-3"><div class="p-3 rounded-3 bg-light border"><div class="text-muted small">Total ballots cast</div><div class="fs-5 fw-semibold">{{ approval.ballot_count }}</div></div></div>
+                  <div class="col-md-3"><div class="p-3 rounded-3 bg-light border"><div class="text-muted small">Eligible voters</div><div class="fs-5 fw-semibold">{{ approval.eligible_voters }}</div></div></div>
+                  <div class="col-md-3"><div class="p-3 rounded-3 bg-light border"><div class="text-muted small">None of the above</div><div class="fs-5 fw-semibold">{{ approval.none_above_count }}</div></div></div>
+                  <div class="col-md-3"><div class="p-3 rounded-3 bg-light border"><div class="text-muted small">Threshold</div><div class="fs-5 fw-semibold">{% if approval.threshold_type == 'percentage' %}{{ '%.1f'|format(approval.threshold_value) }}%{% else %}{{ approval.threshold_value|int }} approvals{% endif %}</div></div></div>
+                </div>
+                <div class="text-muted small mb-3">Percentages and the threshold line use {{ 'eligible voters' if approval.percentage_basis == 'eligible_voters' else 'total ballots cast' }} as the denominator. A candidate at or above the threshold is elected.</div>
+                <div class="table-responsive">
+                  <table class="table table-sm align-middle mb-0">
+                    <thead class="table-light"><tr><th>Candidate</th><th class="text-end">Approvals</th><th class="text-end">Percentage</th><th class="text-end">Status</th></tr></thead>
+                    <tbody>
+                      {% for row in approval.candidate_results %}
+                        <tr class="{% if row.elected %}table-success{% endif %}">
+                          <td class="fw-semibold">{{ row.option.text }}</td><td class="text-end">{{ row.count }}</td><td class="text-end">{{ '%.1f'|format(row.percent) }}%</td><td class="text-end"><span class="badge {% if row.elected %}text-bg-success{% else %}text-bg-secondary{% endif %}">{{ 'Elected' if row.elected else 'Not elected' }}</span></td>
+                        </tr>
+                        <tr><td colspan="4" class="pt-0 border-0"><div class="progress position-relative" style="height: 10px; overflow: visible;"><div class="progress-bar {% if row.elected %}bg-success{% endif %}" style="width: {{ [row.percent, 100]|min }}%;"></div><div class="position-absolute bg-dark" title="Threshold" style="left: {{ approval.threshold_line_percent }}%; top: -3px; bottom: -3px; width: 2px;"></div></div></td></tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
               {% elif item.result_type == "FPTP" %}
                 {% set fptp = item.fptp %}
                 {% set winner_ids = fptp.winners | map(attribute='id') | list %}

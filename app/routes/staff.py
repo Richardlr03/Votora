@@ -8,11 +8,11 @@ from sqlalchemy import or_
 import click
 
 from app.extensions import db
-from app.models import (AuditLog, CandidateVote, CumulativeVote, Flag, Meeting,
+from app.models import (ApprovalBallot, ApprovalVote, AuditLog, CandidateVote, CumulativeVote, Flag, Meeting,
                         Motion, PreferenceBallot, PreferenceVote, ScoreVote,
                         User, YesNoVote)
 
-VOTE_MODELS = (YesNoVote, CandidateVote, PreferenceVote, ScoreVote, CumulativeVote)
+VOTE_MODELS = (YesNoVote, CandidateVote, PreferenceVote, ScoreVote, CumulativeVote, ApprovalVote)
 
 
 def _staff():
@@ -214,6 +214,10 @@ def register_staff_routes(app):
                     PreferenceBallot.query.filter(
                         PreferenceBallot.motion_id.in_(motion_ids),
                         PreferenceBallot.status == "active",
+                    ).update({"status": "invalidated"}, synchronize_session=False)
+                    ApprovalBallot.query.filter(
+                        ApprovalBallot.motion_id.in_(motion_ids),
+                        ApprovalBallot.status == "active",
                     ).update({"status": "invalidated"}, synchronize_session=False)
             flag.status, flag.resolved_by, flag.resolved_at = "approved", actor.id, datetime.utcnow()
             _audit(actor.id, "flag_approved", flag)

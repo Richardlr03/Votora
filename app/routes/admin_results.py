@@ -4,6 +4,7 @@ from flask_login import login_required
 from app.models import Meeting
 from app.routes.admin_common import ensure_meeting_owner
 from app.services.voting import (
+    tally_approval_votes,
     tally_candidate_election,
     tally_cumulative_votes,
     tally_preference_stv,
@@ -21,6 +22,15 @@ def register_admin_result_routes(app):
         results = []
 
         for motion in meeting.motions:
+            if motion.type == "APPROVAL":
+                results.append(
+                    {
+                        "motion": motion,
+                        "result_type": motion.type,
+                        "approval": tally_approval_votes(motion),
+                    }
+                )
+                continue
             if motion.type == "PREFERENCE":
                 pref_result = tally_preference_stv(motion)
                 results.append(
@@ -88,7 +98,16 @@ def register_admin_result_routes(app):
 
         for motion in meeting.motions:
             voter_map = {}
-            if motion.type == "PREFERENCE":
+            if motion.type == "APPROVAL":
+                for ballot in motion.approval_ballots:
+                    if ballot.status == "active":
+                        voter_map[ballot.voter_id] = {
+                            "voter": ballot.voter,
+                            "votes": [],
+                            "none_above": ballot.none_above,
+                        }
+                votes_for_motion = motion.approval_votes
+            elif motion.type == "PREFERENCE":
                 votes_for_motion = motion.preference_votes
             elif motion.type == "FPTP":
                 votes_for_motion = motion.candidate_votes
@@ -127,7 +146,14 @@ def register_admin_result_routes(app):
                 voter = data["voter"]
                 vote_list = data["votes"]
 
-                if motion.type == "PREFERENCE":
+                if motion.type == "APPROVAL":
+                    choice_display = (
+                        "None of the above"
+                        if data.get("none_above")
+                        else ", ".join(item.option.text for item in vote_list)
+                        or "No candidates approved"
+                    )
+                elif motion.type == "PREFERENCE":
                     sorted_votes = sorted(vote_list, key=lambda item: item.preference_rank)
                     if sorted_votes:
                         parts = []
